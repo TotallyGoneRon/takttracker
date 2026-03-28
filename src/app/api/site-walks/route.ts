@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
-import { siteWalks, siteWalkEntries, tasks } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { siteWalks, siteWalkEntries, tasks, zones, companies, activities } from '@/db/schema';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { propagateDelay } from '@/lib/recovery-engine';
 
 // Create a new site walk
@@ -60,28 +60,63 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
-// List site walks for a plan
+// List site walks for a plan, with task details for each entry
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const planId = url.searchParams.get('planId');
+  const fromDate = url.searchParams.get('from');
+  const toDate = url.searchParams.get('to');
 
   if (!planId) {
     return NextResponse.json({ error: 'planId required' }, { status: 400 });
   }
 
+  // Build conditions for the walks query
+  const conditions = [eq(siteWalks.takt_plan_id, parseInt(planId))];
+
+  if (fromDate) {
+    conditions.push(gte(siteWalks.walk_date, fromDate));
+  }
+  if (toDate) {
+    conditions.push(lte(siteWalks.walk_date, toDate));
+  }
+
   const walks = await db
     .select()
     .from(siteWalks)
-    .where(eq(siteWalks.takt_plan_id, parseInt(planId)));
+    .where(and(...conditions));
 
-  // Get entries for each walk
+  // Get entries for each walk, joined with task details
   const walksWithEntries = await Promise.all(
     walks.map(async (walk) => {
       const entries = await db
-        .select()
+        .select({
+          entry: siteWalkEntries,
+          taskName: tasks.task_name,
+          taskStatus: tasks.status,
+          zoneName: zones.name,
+          zoneFloor: zones.floor_number,
+          companyName: companies.name,
+          companyColor: companies.color,
+        })
         .from(siteWalkEntries)
+        .innerJoin(tasks, eq(siteWalkEntries.task_id, tasks.id))
+        .leftJoin(activities, eq(tasks.activity_id, activities.id))
+        .leftJoin(zones, eq(tasks.zone_id, zones.id))
+        .leftJoin(companies, eq(activities.company_id, companies.id))
         .where(eq(siteWalkEntries.site_walk_id, walk.id));
-      return { ...walk, entries };
+
+      const enrichedEntries = entries.map((e) => ({
+        ...e.entry,
+        taskName: e.taskName,
+        taskStatus: e.taskStatus,
+        zoneName: e.zoneName,
+        zoneFloor: e.zoneFloor,
+        companyName: e.companyName,
+        companyColor: e.companyColor,
+      }));
+
+      return { ...walk, entries: enrichedEntries };
     })
   );
 

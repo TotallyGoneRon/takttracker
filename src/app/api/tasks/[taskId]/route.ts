@@ -63,8 +63,25 @@ export async function PATCH(
     );
   }
 
-  // Calculate recovery if task just completed
+  // Auto-record assigned delay when completed late
   if (body.status === 'completed') {
+    const updatedTask = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
+    if (updatedTask && updatedTask.actual_end && updatedTask.planned_end) {
+      const actualEnd = new Date(updatedTask.actual_end + 'T00:00:00');
+      const plannedEnd = new Date(updatedTask.planned_end + 'T00:00:00');
+      const daysLate = Math.round((actualEnd.getTime() - plannedEnd.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysLate > 0) {
+        await db.insert(taskDelays).values({
+          task_id: taskId,
+          delay_days: daysLate,
+          delay_type: 'assigned',
+          reason: 'other',
+          notes: `Completed ${daysLate}d late`,
+        });
+      }
+    }
+
+    // Calculate recovery if task just completed
     await calculateRecovery(taskId);
   }
 

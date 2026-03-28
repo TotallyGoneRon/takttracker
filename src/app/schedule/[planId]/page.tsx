@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -60,6 +60,50 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   blocked: 'bg-red-700',
 };
 
+const MAX_SHOW_ALL_TASKS = 200;
+
+function getCurrentWeek() {
+  // Mountain Time, Mon-Fri work week (weekends don't count)
+  const TZ = 'America/Edmonton';
+  const nowStr = new Date().toLocaleString('en-US', { timeZone: TZ });
+  const now = new Date(nowStr);
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  return {
+    start: monday.toISOString().split('T')[0],
+    end: friday.toISOString().split('T')[0],
+  };
+}
+
+// Loading skeleton component
+function TaskSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3].map((group) => (
+        <div key={group} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+          </div>
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="px-4 py-3 flex items-center gap-3 border-b border-gray-50">
+              <div className="w-2 h-2 rounded-full bg-gray-200 animate-pulse" />
+              <div className="w-3 h-8 rounded-sm bg-gray-200 animate-pulse" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
+              </div>
+              <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   const params = useParams();
   const planId = params.planId as string;
@@ -67,36 +111,51 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [buildingFilter, setBuildingFilter] = useState('all');
-  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
-    // Default to current week
-    const now = new Date();
-    const day = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return {
-      start: monday.toISOString().split('T')[0],
-      end: sunday.toISOString().split('T')[0],
-    };
-  });
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>(getCurrentWeek);
   const [showAllDates, setShowAllDates] = useState(false);
+
+  // Reset to current week
+  const resetToThisWeek = useCallback(() => {
+    setShowAllDates(false);
+    setDateRange(getCurrentWeek());
+  }, []);
+
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (!showAllDates) {
-        params.set('start', dateRange.start);
-        params.set('end', dateRange.end);
-      }
-      if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (buildingFilter !== 'all') params.set('building', buildingFilter);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (!showAllDates) {
+          params.set('start', dateRange.start);
+          params.set('end', dateRange.end);
+        }
+        if (statusFilter !== 'all') params.set('status', statusFilter);
+        if (buildingFilter !== 'all') params.set('building', buildingFilter);
 
-      const res = await fetch(`/tracking/api/plans/${planId}?${params}`);
-      const json = await res.json();
-      setData(json);
-      setLoading(false);
+        const res = await fetch(`/tracking/api/plans/${planId}?${params}`);
+        if (!res.ok) throw new Error('Failed to load');
+        const json = await res.json();
+
+        // PERFORMANCE: Limit tasks when showing all dates
+        if (showAllDates && json.tasks.length > MAX_SHOW_ALL_TASKS) {
+          json.tasks = json.tasks.slice(0, MAX_SHOW_ALL_TASKS);
+          json.stats = {
+            ...json.stats,
+            total: json.tasks.length,
+            _truncated: true,
+            _originalTotal: json.stats.total,
+          };
+        }
+
+        setData(json);
+      } catch (err) {
+        setError('Failed to load schedule data. Please check your connection and refresh.');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [planId, dateRange, statusFilter, buildingFilter, showAllDates]);
@@ -123,15 +182,41 @@ export default function SchedulePage() {
     return map;
   }, [data]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" />
+      <div className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
+          <div>
+            <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-2">
+              <div className="h-6 w-8 bg-gray-200 rounded animate-pulse mx-auto mb-1" />
+              <div className="h-3 w-12 bg-gray-100 rounded animate-pulse mx-auto" />
+            </div>
+          ))}
+        </div>
+        <TaskSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <h3 className="text-lg font-semibold text-red-600">Unable to load schedule</h3>
+        <p className="text-gray-500 mt-2">{error}</p>
       </div>
     );
   }
 
   if (!data) return <div className="p-6">Plan not found</div>;
+
+  const isTruncated = (data.stats as Record<string, unknown>)._truncated;
+  const originalTotal = (data.stats as Record<string, unknown>)._originalTotal as number | undefined;
 
   return (
     <div className="p-4 md:p-6">
@@ -139,24 +224,29 @@ export default function SchedulePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
         <div>
           <h2 className="text-xl font-bold">{data.plan.name}</h2>
-          <p className="text-sm text-gray-500">{data.stats.total} tasks shown</p>
+          <p className="text-sm text-gray-500">
+            {data.stats.total} tasks shown
+            {isTruncated && originalTotal ? (
+              <span className="text-yellow-600 ml-1">(limited to {MAX_SHOW_ALL_TASKS} of {originalTotal})</span>
+            ) : null}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Link
-            href={`/tracking/schedule/${planId}/site-walk`}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+            href={`/schedule/${planId}/site-walk`}
+            className="px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 min-h-[44px] flex items-center"
           >
             Site Walk
           </Link>
           <Link
-            href={`/tracking/schedule/${planId}/map`}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50"
+            href={`/schedule/${planId}/map`}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 min-h-[44px] flex items-center"
           >
             Map View
           </Link>
           <Link
-            href={`/tracking/schedule/${planId}/scorecard`}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50"
+            href={`/schedule/${planId}/scorecard`}
+            className="px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 min-h-[44px] flex items-center"
           >
             Scorecard
           </Link>
@@ -165,7 +255,9 @@ export default function SchedulePage() {
 
       {/* Stats Bar */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-        {Object.entries(data.stats).map(([key, val]) => (
+        {Object.entries(data.stats)
+          .filter(([key]) => !key.startsWith('_'))
+          .map(([key, val]) => (
           <div key={key} className="bg-white border border-gray-200 rounded-lg p-2 text-center">
             <div className="text-lg font-bold">{val}</div>
             <div className="text-xs text-gray-500 capitalize">{key.replace('_', ' ')}</div>
@@ -175,14 +267,14 @@ export default function SchedulePage() {
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-xl p-3 mb-4 flex flex-wrap gap-3 items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-sm font-medium text-gray-600">Week:</label>
           <input
             type="date"
             value={dateRange.start}
             onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
             disabled={showAllDates}
-            className="px-2 py-1 border border-gray-300 rounded text-sm disabled:bg-gray-100"
+            className="px-3 py-2.5 border border-gray-300 rounded text-sm disabled:bg-gray-100 min-h-[44px]"
           />
           <span className="text-gray-400">to</span>
           <input
@@ -190,23 +282,29 @@ export default function SchedulePage() {
             value={dateRange.end}
             onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
             disabled={showAllDates}
-            className="px-2 py-1 border border-gray-300 rounded text-sm disabled:bg-gray-100"
+            className="px-3 py-2.5 border border-gray-300 rounded text-sm disabled:bg-gray-100 min-h-[44px]"
           />
-          <label className="flex items-center gap-1 text-sm text-gray-600">
+          <button
+            onClick={resetToThisWeek}
+            className="px-3 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-100 transition min-h-[44px]"
+          >
+            This Week
+          </button>
+          <label className="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer px-3 py-2.5 rounded hover:bg-gray-50 min-h-[44px]">
             <input
               type="checkbox"
               checked={showAllDates}
               onChange={(e) => setShowAllDates(e.target.checked)}
               className="rounded"
             />
-            All
+            Show All
           </label>
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-2 py-1 border border-gray-300 rounded text-sm"
+          className="px-3 py-2.5 border border-gray-300 rounded text-sm min-h-[44px]"
         >
           <option value="all">All Statuses</option>
           <option value="not_started">Not Started</option>
@@ -219,7 +317,7 @@ export default function SchedulePage() {
         <select
           value={buildingFilter}
           onChange={(e) => setBuildingFilter(e.target.value)}
-          className="px-2 py-1 border border-gray-300 rounded text-sm"
+          className="px-3 py-2.5 border border-gray-300 rounded text-sm min-h-[44px]"
         >
           <option value="all">All Buildings</option>
           {data.buildings.map((b) => (
@@ -227,6 +325,14 @@ export default function SchedulePage() {
           ))}
         </select>
       </div>
+
+      {/* Loading overlay for filter changes */}
+      {loading && data && (
+        <div className="text-center py-2 text-sm text-gray-500 mb-2">
+          <span className="inline-block animate-spin mr-2">&#8635;</span>
+          Updating...
+        </div>
+      )}
 
       {/* Task List grouped by building/zone */}
       <div className="space-y-4">
@@ -243,10 +349,11 @@ export default function SchedulePage() {
                 <div className="divide-y divide-gray-50">
                   {zoneTasks.map((task) => (
                     <div key={task.id} className="px-4 py-2 flex items-center gap-3 hover:bg-gray-50">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_COLORS[task.status] || 'bg-gray-400'}`} />
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 status-transition ${STATUS_DOT_COLORS[task.status] || 'bg-gray-400'}`} />
                       <div
                         className="w-3 h-8 rounded-sm flex-shrink-0"
                         style={{ backgroundColor: task.activityColor || '#9ca3af' }}
+                        title={task.activityName}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{task.task_name}</div>
@@ -254,7 +361,7 @@ export default function SchedulePage() {
                           {task.company?.name || 'Unassigned'} · {task.planned_start} → {task.planned_end}
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[task.status] || ''}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full status-transition ${STATUS_COLORS[task.status] || ''}`}>
                         {task.status.replace('_', ' ')}
                       </span>
                       {task.recovery_points > 0 && (

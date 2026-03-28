@@ -23,16 +23,18 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 - ✓ Manage company assignments to activities — existing
 - ✓ Configure delay weight settings per project — existing (route exists, schema incomplete)
 - ✓ Standalone deployment at /tracking basePath — existing
+- ✓ Shared UI component library (shadcn/ui) with consistent status colors — Phase 1
+- ✓ Reusable SWR data fetching hooks with skeleton loading — Phase 1
+- ✓ Database backup and migration infrastructure — Phase 1
+- ✓ Missing schema tables and columns fixed (delayWeights, importChangelog) — Phase 1
 
 ### Active
 
 - [ ] Full front-end and feature audit (UX, bugs, code quality, feature gaps)
 - [ ] Scorecard overhaul — task-level detail, trend over time, trade breakdown
 - [ ] UI/UX overhaul — dashboard-rich on desktop, clean/task-focused on mobile
-- [ ] Fix broken features (missing schema tables: delayWeights, importChangelog)
 - [ ] Fix security issues (no auth, SSRF in sync, no input validation)
 - [ ] Fix performance bottlenecks (N+1 queries, full table scans, no pagination)
-- [ ] Consolidate inconsistent status colors across pages
 - [ ] Responsive design across all pages
 
 ### Out of Scope
@@ -85,4 +87,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after initialization*
+*Last updated: 2026-03-28 after Phase 1 completion*

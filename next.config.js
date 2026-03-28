@@ -5,6 +5,9 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['better-sqlite3', 'sharp'],
   },
+  env: {
+    TZ: 'America/Edmonton',
+  },
 };
 
 module.exports = nextConfig;

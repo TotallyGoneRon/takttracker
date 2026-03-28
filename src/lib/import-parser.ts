@@ -44,7 +44,10 @@ export interface DetectedZone {
   name: string;
   floorNumber: number | null;
   zoneType: 'interior' | 'exterior' | 'common' | 'foundation' | 'site' | 'parkade' | 'roof' | 'elevator' | 'stairs';
+  scheduleType: 'interior' | 'exterior' | 'foundation' | 'civil' | 'procurement' | 'other';
   rawArea: string;
+  /** Unique key: buildingCode + scheduleType + area — ensures "1st Floor, 1A" in SE vs N are distinct */
+  uniqueKey: string;
 }
 
 export interface ImportResult {
@@ -279,73 +282,95 @@ export function detectZones(activities: ParsedActivity[]): DetectedZone[] {
     if (!activity.area || activity.area === 'Area' || activity.area === 'Area, Zone') continue;
 
     const rawArea = activity.area;
-    if (zoneMap.has(rawArea)) continue;
-
     const zone = parseAreaToZone(rawArea, activity.phaseName);
-    if (zone) {
-      zoneMap.set(rawArea, zone);
+    if (!zone) continue;
+
+    // Use uniqueKey (buildingCode + scheduleType + area) to dedup
+    // This ensures "1st Floor, 1A" in SE Building vs N Building are distinct zones
+    if (!zoneMap.has(zone.uniqueKey)) {
+      zoneMap.set(zone.uniqueKey, zone);
     }
   }
 
   return Array.from(zoneMap.values());
 }
 
+/** Determine schedule type from phase name */
+function detectScheduleType(phase: string): DetectedZone['scheduleType'] {
+  if (/Interiors?$/i.test(phase)) return 'interior';
+  if (/Exteriors?$/i.test(phase)) return 'exterior';
+  if (/Foundation/i.test(phase)) return 'foundation';
+  if (/Civil/i.test(phase)) return 'civil';
+  if (/Procurement/i.test(phase)) return 'procurement';
+  return 'other';
+}
+
 function parseAreaToZone(area: string, phaseName: string): DetectedZone | null {
+  const buildingCode = detectBuildingFromPhase(phaseName);
+  const scheduleType = detectScheduleType(phaseName);
+  const makeKey = (bCode: string | null, sType: string, a: string) =>
+    `${bCode || 'SITE'}::${sType}::${a}`;
+
   // Interior zones: "1st Floor, 1A" or "4th Floor, Hallway"
   const interiorMatch = area.match(/^(\d+)(?:st|nd|rd|th)\s+Floor,\s*(.+)$/i);
   if (interiorMatch) {
     const floorNum = parseInt(interiorMatch[1]);
     const zoneName = interiorMatch[2].trim();
-    // Determine building from phase
-    const buildingCode = detectBuildingFromPhase(phaseName);
     return {
       buildingCode,
       name: zoneName,
       floorNumber: floorNum,
       zoneType: zoneName.toLowerCase() === 'hallway' ? 'common' : 'interior',
+      scheduleType,
       rawArea: area,
+      uniqueKey: makeKey(buildingCode, scheduleType, area),
     };
   }
 
   // Exterior zones: "SE, 9 (5PK)" or "N, ALL BUILDING"
   const exteriorMatch = area.match(/^(SE|N|SW),\s*(.+)$/);
   if (exteriorMatch) {
-    const buildingCode = exteriorMatch[1];
+    const extBuildingCode = exteriorMatch[1];
     const zoneName = exteriorMatch[2].trim();
 
-    // Check for floor references
     const floorMatch = zoneName.match(/^FLOOR\s+(\d+)$/i);
     if (floorMatch) {
       return {
-        buildingCode,
+        buildingCode: extBuildingCode,
         name: zoneName,
         floorNumber: parseInt(floorMatch[1]),
         zoneType: 'exterior',
+        scheduleType: 'exterior',
         rawArea: area,
+        uniqueKey: makeKey(extBuildingCode, 'exterior', area),
       };
     }
 
     return {
-      buildingCode,
+      buildingCode: extBuildingCode,
       name: zoneName,
       floorNumber: null,
       zoneType: zoneName === 'ALL BUILDING' ? 'common' : 'exterior',
+      scheduleType: 'exterior',
       rawArea: area,
+      uniqueKey: makeKey(extBuildingCode, 'exterior', area),
     };
   }
 
   // Foundation zones: "N Building, Foundations 1"
   const foundationMatch = area.match(/^(SE|N|SW)\s+Building,\s*(.+)$/i);
   if (foundationMatch) {
-    const buildingCode = foundationMatch[1].toUpperCase();
+    const fBuildingCode = foundationMatch[1].toUpperCase();
     const zoneName = foundationMatch[2].trim();
     const isFoundation = /foundation/i.test(zoneName);
     return {
-      buildingCode,
+      buildingCode: fBuildingCode,
       name: zoneName,
       floorNumber: null,
       zoneType: isFoundation ? 'foundation' : 'common',
+      scheduleType: 'foundation',
       rawArea: area,
+      uniqueKey: makeKey(fBuildingCode, 'foundation', area),
     };
   }
 
@@ -357,7 +382,9 @@ function parseAreaToZone(area: string, phaseName: string): DetectedZone | null {
       name: `${siteMatch[1]} - ${siteMatch[2].trim()}`,
       floorNumber: null,
       zoneType: 'site',
+      scheduleType: 'civil',
       rawArea: area,
+      uniqueKey: makeKey(null, 'civil', area),
     };
   }
 
@@ -371,26 +398,28 @@ function parseAreaToZone(area: string, phaseName: string): DetectedZone | null {
 
   for (const [keyword, type] of Object.entries(specialZones)) {
     if (area.toLowerCase().includes(keyword)) {
-      const buildingCode = detectBuildingFromPhase(phaseName);
       const parts = area.split(',');
       return {
         buildingCode,
         name: parts.length > 1 ? parts[1].trim() : area,
         floorNumber: null,
         zoneType: type,
+        scheduleType,
         rawArea: area,
+        uniqueKey: makeKey(buildingCode, scheduleType, area),
       };
     }
   }
 
-  // Retaining wall, community building, etc.
-  const buildingCode = detectBuildingFromPhase(phaseName);
+  // Retaining wall, community building, procurement, etc.
   return {
     buildingCode,
     name: area,
     floorNumber: null,
     zoneType: 'common',
+    scheduleType,
     rawArea: area,
+    uniqueKey: makeKey(buildingCode, scheduleType, area),
   };
 }
 

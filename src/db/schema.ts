@@ -45,6 +45,10 @@ export const zones = sqliteTable('zones', {
   zone_type: text('zone_type', {
     enum: ['interior', 'exterior', 'common', 'foundation', 'site', 'parkade', 'roof', 'elevator', 'stairs'],
   }).notNull().default('interior'),
+  schedule_type: text('schedule_type', {
+    enum: ['interior', 'exterior', 'foundation', 'civil', 'procurement', 'other'],
+  }).notNull().default('interior'),
+  unique_key: text('unique_key'), // buildingCode::scheduleType::area for dedup
   display_order: integer('display_order').notNull().default(0),
   color: text('color'),
 });
@@ -114,8 +118,31 @@ export const tasks = sqliteTable('tasks', {
   crew_size: integer('crew_size'),
   notes: text('notes'),
   area_raw: text('area_raw'), // original "Area" value from XLSX
+  // Tracking flags
+  is_trackable: integer('is_trackable', { mode: 'boolean' }).notNull().default(true),
+  // false = imported as already completed, no delay/recovery data possible
+  imported_as_completed: integer('imported_as_completed', { mode: 'boolean' }).notNull().default(false),
+  // Previous planned dates (before last re-import shifted them)
+  prev_planned_start: text('prev_planned_start'),
+  prev_planned_end: text('prev_planned_end'),
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
   updated_at: text('updated_at').notNull().default(sql`(datetime('now'))`),
+});
+
+// ─── Import Changelog ──────────────────────────────────────────
+
+export const importChangelog = sqliteTable('import_changelog', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  import_log_id: integer('import_log_id').notNull().references(() => importLogs.id, { onDelete: 'cascade' }),
+  change_type: text('change_type', {
+    enum: ['date_shift', 'new_task', 'removed_task', 'new_zone', 'status_change', 'new_activity'],
+  }).notNull(),
+  task_id: integer('task_id').references(() => tasks.id),
+  intakt_task_id: text('intakt_task_id'),
+  description: text('description').notNull(),
+  old_value: text('old_value'),
+  new_value: text('new_value'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
 });
 
 // ─── Task Relationships ────────────────────────────────────────
@@ -214,6 +241,20 @@ export const predictiveFlags = sqliteTable('predictive_flags', {
   reason: text('reason'),
   is_dismissed: integer('is_dismissed', { mode: 'boolean' }).notNull().default(false),
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
+// ─── Delay Weights ──────────────────────────────────────────────
+
+export const delayWeights = sqliteTable('delay_weights', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  project_id: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  reason: text('reason', {
+    enum: ['labor', 'material', 'prep', 'design', 'weather', 'inspection', 'prerequisite', 'other'],
+  }).notNull(),
+  weight: real('weight').notNull().default(1.0),
+  impacts_score: integer('impacts_score', { mode: 'boolean' }).notNull().default(true),
+  cascading_multiplier: real('cascading_multiplier').notNull().default(1.5),
+  description: text('description'),
 });
 
 // ─── Floor Plans ───────────────────────────────────────────────
