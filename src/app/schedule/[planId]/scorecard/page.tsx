@@ -1,24 +1,84 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
-interface CompanyScore {
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+
+// --- Interfaces ---
+
+interface ScorecardTask {
+  id: number;
+  taskName: string;
+  status: string;
+  plannedStart: string;
+  plannedEnd: string;
+  actualStart: string | null;
+  actualEnd: string | null;
+  delayDays: number;
+  zoneName: string;
+  zoneFloor: number | null;
+  buildingCode: string;
+  delays: Array<{
+    id: number;
+    delayDays: number;
+    delayType: string;
+    reason: string;
+    notes: string | null;
+    createdAt: string;
+  }>;
+}
+
+interface ScorecardCompany {
   companyId: number;
   companyName: string;
   companyColor: string | null;
   totalTasks: number;
   completedTasks: number;
-  completedOnTime: number;
-  completedLate: number;
-  onTimeRate: number;        // -1 = no data
+  onTimeTasks: number;
+  lateTasks: number;
+  onTimeRate: number;
   assignedDelayDays: number;
-  weightedDelayDays: number;
+  ppc: number;
   inheritedDelayDays: number;
   recoveryPoints: number;
-  recoveryRate: number;      // -1 = N/A
-  healthScore: number;
+  recoveryRate: number;
+  tasks: ScorecardTask[];
+}
+
+interface ScorecardOverall {
+  totalTasks: number;
+  completedTasks: number;
+  onTimeRate: number;
+  ppc: number;
+  totalAssignedDelayDays: number;
+  totalInheritedDays: number;
+}
+
+interface TrendPoint {
+  week: string;
+  onTimeRate: number;
+  delayDays: number;
+  completedCount: number;
+}
+
+interface ScorecardResponse {
+  companies: ScorecardCompany[];
+  overall: ScorecardOverall;
+  trends: TrendPoint[];
+  building: { id: number; code: string; name: string } | null;
 }
 
 interface Building {
@@ -27,69 +87,48 @@ interface Building {
   name: string;
 }
 
-interface Scorecard {
-  companies: CompanyScore[];
-  overall: {
-    totalDelayDays: number;
-    totalWeightedDelayDays: number;
-    totalRecoveryPoints: number;
-    totalInheritedDays: number;
-  };
-  building: Building | null;
+// --- Helpers ---
+
+function getOnTimeColor(rate: number): string {
+  if (rate === -1) return 'text-gray-300';
+  if (rate >= 90) return 'text-green-600';
+  if (rate >= 70) return 'text-yellow-600';
+  return 'text-red-600';
 }
+
+function getPpcColor(ppc: number): string {
+  if (ppc >= 80) return 'text-green-600';
+  if (ppc >= 50) return 'text-yellow-600';
+  return 'text-red-600';
+}
+
+// --- Chart Config ---
+
+const chartConfig: ChartConfig = {
+  onTimeRate: { label: 'On-Time Rate', color: '#22c55e' },
+  delayDays: { label: 'Delay Days', color: '#ef4444' },
+};
+
+// --- Main Component ---
 
 export default function ScorecardPage() {
   const params = useParams();
   const planId = params.planId as string;
-  const [scorecard, setScorecard] = useState<Scorecard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<keyof CompanyScore>('healthScore');
+  const [sortBy, setSortBy] = useState<string>('onTimeRate');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
 
-  const [error, setError] = useState<string | null>(null);
-  const [expandedCompany, setExpandedCompany] = useState<number | null>(null);
-  const [companyDetails, setCompanyDetails] = useState<any>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  const buildingParam = selectedBuildingId ? `&buildingId=${selectedBuildingId}` : '';
+  const { data: scorecard, error, isLoading } = useSWR<ScorecardResponse>(
+    `/api/scorecard?planId=${planId}${buildingParam}`
+  );
+  const { data: planData } = useSWR<{ buildings: Building[] }>(
+    `/api/plans/${planId}`
+  );
+  const buildings = planData?.buildings || [];
 
-  // Fetch buildings for the plan
-  useEffect(() => {
-    const fetchBuildings = async () => {
-      try {
-        const planRes = await fetch(`/tracking/api/plans/${planId}`);
-        if (planRes.ok) {
-          const planData = await planRes.json();
-          if (planData.buildings) {
-            setBuildings(planData.buildings);
-          }
-        }
-      } catch {
-        // Buildings are optional
-      }
-    };
-    fetchBuildings();
-  }, [planId]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const buildingParam = selectedBuildingId ? `&buildingId=${selectedBuildingId}` : '';
-        const res = await fetch(`/tracking/api/scorecard?planId=${planId}${buildingParam}`);
-        if (!res.ok) throw new Error('Failed to load');
-        const data = await res.json();
-        setScorecard(data);
-      } catch (err) {
-        setError('Failed to load scorecard data. Please check your connection and refresh.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [planId, selectedBuildingId]);
-
-  const handleSort = (col: keyof CompanyScore) => {
+  const handleSort = (col: string) => {
     if (sortBy === col) {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
@@ -98,87 +137,93 @@ export default function ScorecardPage() {
     }
   };
 
-  const handleCompanyClick = async (companyId: number) => {
-    if (expandedCompany === companyId) {
-      setExpandedCompany(null);
-      setCompanyDetails(null);
-      return;
+  const selectedCompany = scorecard?.companies.find(c => c.companyId === selectedCompanyId) || null;
+
+  // Sort companies
+  const sorted = scorecard ? [...scorecard.companies].sort((a, b) => {
+    const aVal = (a as any)[sortBy] ?? 0;
+    const bVal = (b as any)[sortBy] ?? 0;
+    // Push -1 (no data) to bottom for rate columns
+    if (sortBy === 'onTimeRate' || sortBy === 'recoveryRate') {
+      if (aVal === -1 && bVal === -1) return 0;
+      if (aVal === -1) return 1;
+      if (bVal === -1) return -1;
     }
-    setExpandedCompany(companyId);
-    setLoadingDetails(true);
-    try {
-      // Fetch all tasks for this company in this plan
-      const res = await fetch(`/tracking/api/plans/${planId}?limit=0`);
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      const companyTasks = data.tasks.filter((t: any) => t.company?.id === companyId);
+    return sortDir === 'desc' ? (bVal as number) - (aVal as number) : (aVal as number) - (bVal as number);
+  }) : [];
 
-      // Get delays for these tasks
-      const delayPromises = companyTasks.slice(0, 50).map(async (t: any) => {
-        const dRes = await fetch(`/tracking/api/tasks/${t.id}`);
-        if (!dRes.ok) return { ...t, delays: [] };
-        const taskData = await dRes.json();
-        return { ...t, delays: taskData.delays || [] };
-      });
-      const tasksWithDelays = await Promise.all(delayPromises);
-
-      setCompanyDetails({
-        tasks: tasksWithDelays,
-        total: companyTasks.length,
-        completed: companyTasks.filter((t: any) => t.status === 'completed').length,
-        delayed: companyTasks.filter((t: any) => t.status === 'delayed').length,
-        onTrack: companyTasks.filter((t: any) => t.recovery_status === 'on_track').length,
-      });
-    } catch {
-      setCompanyDetails(null);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  if (loading) {
+  // --- Loading State ---
+  if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" />
+      <div className="p-4 md:p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i}>
+              <CardContent className="p-4 md:p-6 text-center">
+                <Skeleton className="h-8 w-20 mx-auto mb-2" />
+                <Skeleton className="h-3 w-24 mx-auto" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Skeleton className="h-[250px] w-full rounded-lg mb-8" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <Skeleton key={i} className="h-6 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
 
+  // --- Error State ---
   if (error) {
     return (
       <div className="p-6 text-center">
-        <h3 className="text-lg font-semibold text-red-600">Unable to load scorecard</h3>
-        <p className="text-gray-500 mt-2">{error}</p>
+        <Card>
+          <CardContent className="p-8">
+            <h3 className="text-lg font-bold text-red-600">Unable to load scorecard</h3>
+            <p className="text-sm text-gray-500 mt-2">Check your connection and refresh the page.</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!scorecard) return <div className="p-6">No scorecard data</div>;
+  if (!scorecard) return null;
 
-  const sorted = [...scorecard.companies].sort((a, b) => {
-    const aVal = a[sortBy] ?? 0;
-    const bVal = b[sortBy] ?? 0;
+  // --- Empty State ---
+  if (scorecard.companies.length === 0) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h3 className="text-lg font-bold text-gray-700">No scorecard data yet</h3>
+            <p className="text-sm text-gray-500 mt-2">
+              Complete site walks and record task progress to see trade performance rankings.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortBy !== col) return null;
     return sortDir === 'desc'
-      ? (bVal as number) - (aVal as number)
-      : (aVal as number) - (bVal as number);
-  });
-
-  // Top 10 by recovery rate for bar chart
-  const top10 = [...scorecard.companies]
-    .sort((a, b) => b.recoveryRate - a.recoveryRate)
-    .slice(0, 10);
-  const maxRate = Math.max(...top10.map((c) => c.recoveryRate), 1);
+      ? <ChevronDown className="inline w-3 h-3 ml-0.5" />
+      : <ChevronUp className="inline w-3 h-3 ml-0.5" />;
+  };
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4 no-print">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 no-print">
         <div>
           <h2 className="text-xl font-bold">
-            {scorecard.building
-              ? `${scorecard.building.name} Scorecard`
-              : 'Project Scorecard'}
+            {scorecard.building ? `${scorecard.building.name} Scorecard` : 'Project Scorecard'}
           </h2>
-          <p className="text-sm text-gray-500">Trade accountability & recovery tracking</p>
+          <p className="text-sm text-gray-500">Trade performance & accountability</p>
         </div>
         <div className="flex gap-2">
           {buildings.length > 0 && (
@@ -193,12 +238,9 @@ export default function ScorecardPage() {
               ))}
             </select>
           )}
-          <button
-            onClick={() => window.print()}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]"
-          >
-            Print
-          </button>
+          <Button variant="outline" className="min-h-[44px]" onClick={() => window.print()}>
+            Print Scorecard
+          </Button>
           <Link
             href={`/schedule/${planId}`}
             className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 min-h-[44px] flex items-center"
@@ -208,253 +250,285 @@ export default function ScorecardPage() {
         </div>
       </div>
 
-      {/* Overall Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-red-50 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-red-600">{scorecard.overall.totalDelayDays}</div>
-          <div className="text-xs text-red-700">Total Assigned Delay Days</div>
-        </div>
-        <div className="bg-yellow-50 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{scorecard.overall.totalInheritedDays}</div>
-          <div className="text-xs text-yellow-700">Total Inherited Delay Days</div>
-        </div>
-        <div className="bg-blue-50 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{scorecard.overall.totalRecoveryPoints}</div>
-          <div className="text-xs text-blue-700">Total Recovery Points</div>
-        </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardContent className="p-4 md:p-6 text-center">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div>
+                    <div className={`text-2xl font-bold ${getPpcColor(scorecard.overall.ppc)}`}>
+                      {scorecard.overall.ppc}%
+                    </div>
+                    <div className="text-xs font-bold text-gray-500">Plan Complete (PPC)</div>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Percent Plan Complete: completed tasks / tasks due by today</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 md:p-6 text-center">
+            <div className={`text-2xl font-bold ${getOnTimeColor(scorecard.overall.onTimeRate)}`}>
+              {scorecard.overall.onTimeRate >= 0 ? `${scorecard.overall.onTimeRate}%` : 'N/A'}
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="text-xs font-bold text-gray-500">Overall On-Time</div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Percentage of completed tasks finished on or before planned end date</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 md:p-6 text-center">
+            <div className={`text-2xl font-bold ${scorecard.overall.totalAssignedDelayDays > 0 ? 'text-red-600' : 'text-gray-300'}`}>
+              {scorecard.overall.totalAssignedDelayDays > 0 ? scorecard.overall.totalAssignedDelayDays : '—'}
+            </div>
+            <div className="text-xs font-bold text-gray-500">Total Delay Days</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 md:p-6 text-center">
+            <div className="text-2xl font-bold text-gray-900">
+              {scorecard.overall.completedTasks}/{scorecard.overall.totalTasks}
+            </div>
+            <div className="text-xs font-bold text-gray-500">Tasks Complete</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Top 10 Recovery Rate Bar Chart */}
-      {top10.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-          <h3 className="font-semibold text-sm mb-4">Top 10 Companies by Recovery Rate</h3>
-          <div className="space-y-2">
-            {top10.map((company) => {
-              const barWidth = maxRate > 0 ? (company.recoveryRate / maxRate) * 100 : 0;
-              const barColor =
-                company.recoveryRate >= 80
-                  ? 'bg-green-500'
-                  : company.recoveryRate >= 50
-                  ? 'bg-yellow-500'
-                  : company.recoveryRate >= 1
-                  ? 'bg-red-500'
-                  : 'bg-gray-300';
+      {/* Trend Charts */}
+      <Card className="mb-8">
+        <CardContent className="p-4">
+          {scorecard.trends.length === 0 ? (
+            <div className="text-center py-8">
+              <h3 className="text-sm font-bold text-gray-700">Trend data will appear as tasks complete</h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Weekly on-time rate and delay trends accumulate automatically from task completions.
+              </p>
+            </div>
+          ) : (
+            <Tabs defaultValue="onTimeRate">
+              <TabsList>
+                <TabsTrigger value="onTimeRate">On-Time Rate</TabsTrigger>
+                <TabsTrigger value="delayDays">Delay Days</TabsTrigger>
+              </TabsList>
+              <TabsContent value="onTimeRate">
+                <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px] w-full">
+                  <LineChart data={scorecard.trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="week" tickFormatter={(w: string) => w.replace(/^\d{4}-/, '')} />
+                    <YAxis domain={[0, 100]} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="onTimeRate" stroke="var(--color-onTimeRate)" strokeWidth={2} dot={{ r: 4 }} />
+                  </LineChart>
+                </ChartContainer>
+              </TabsContent>
+              <TabsContent value="delayDays">
+                <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px] w-full">
+                  <BarChart data={scorecard.trends}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="week" tickFormatter={(w: string) => w.replace(/^\d{4}-/, '')} />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="delayDays" fill="var(--color-delayDays)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+      </Card>
 
-              return (
-                <div key={company.companyId} className="flex items-center gap-3">
-                  <div className="w-28 flex-shrink-0 text-xs font-medium truncate text-right">
-                    <span className="text-gray-900">
-                      {company.companyName}
-                    </span>
-                  </div>
-                  <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full print-bar transition-all duration-500 ${barColor}`}
-                      style={{ width: `${barWidth}%` }}
-                    />
-                  </div>
-                  <div className="w-12 text-xs font-bold text-right">{company.recoveryRate}%</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Leaderboard */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto scorecard-table-scroll">
-          <table className="w-full text-sm min-w-[800px]">
+      {/* Leaderboard Table */}
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-3 py-3 font-semibold text-gray-600 sticky left-0 bg-gray-50 z-10 w-8">#</th>
-                <th className="text-left px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900 sticky left-8 bg-gray-50 z-10 min-w-[130px]"
+                <th className="text-left px-3 py-3 font-bold text-gray-600 sticky left-0 bg-gray-50 z-10 w-8">#</th>
+                <th className="text-left px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900 sticky left-8 bg-gray-50 z-10 min-w-[130px]"
                   onClick={() => handleSort('companyName')}>
-                  Company {sortBy === 'companyName' ? (sortDir === 'desc' ? '↓' : '↑') : ''}
+                  Company <SortIcon col="companyName" />
                 </th>
-                <th className="text-center px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('healthScore')}>
-                  Score {sortBy === 'healthScore' ? (sortDir === 'desc' ? '↓' : '↑') : ''}
+                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                  onClick={() => handleSort('totalTasks')}>
+                  Tasks <SortIcon col="totalTasks" />
                 </th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('totalTasks')}>Tasks</th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('onTimeRate')}>On-Time</th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('assignedDelayDays')}>Caused</th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('weightedDelayDays')}>Weighted</th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('inheritedDelayDays')}>Inherited</th>
-                <th className="text-right px-3 py-3 font-semibold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('recoveryRate')}>Recovery</th>
+                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                  onClick={() => handleSort('onTimeRate')}>
+                  On-Time % <SortIcon col="onTimeRate" />
+                </th>
+                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                  onClick={() => handleSort('assignedDelayDays')}>
+                  Caused <SortIcon col="assignedDelayDays" />
+                </th>
+                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                  onClick={() => handleSort('ppc')}>
+                  PPC <SortIcon col="ppc" />
+                </th>
+                <th className="text-right px-3 py-3 font-normal text-gray-500 cursor-pointer hover:text-gray-900 hidden md:table-cell"
+                  onClick={() => handleSort('recoveryRate')}>
+                  Recovery <SortIcon col="recoveryRate" />
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sorted.map((company, i) => {
-                const isExpanded = expandedCompany === company.companyId;
-
-                return (
-                  <><tr key={company.companyId}
-                    onClick={() => handleCompanyClick(company.companyId)}
-                    className={`hover:bg-gray-50 cursor-pointer transition ${company.weightedDelayDays >= 5 ? 'bg-red-50/30' : ''} ${isExpanded ? 'bg-blue-50/50' : ''}`}>
-                    <td className="px-3 py-3 text-gray-400 sticky left-0 bg-inherit z-10">{i + 1}</td>
-                    <td className="px-3 py-3 sticky left-8 bg-inherit z-10">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: company.companyColor ? `#${company.companyColor}` : '#9ca3af' }} />
-                        <span className="font-medium text-gray-900">{company.companyName}</span>
-                        <span className="text-gray-400 text-xs">{isExpanded ? '▲' : '▼'}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <HealthBadge score={company.healthScore} />
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <div>{company.completedTasks}/{company.totalTasks}</div>
-                      <div className="text-[10px] text-gray-400">
-                        {company.totalTasks > 0 ? Math.round(company.completedTasks / company.totalTasks * 100) : 0}% done
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      {company.onTimeRate >= 0 ? (
-                        <span className={`font-medium ${company.onTimeRate >= 90 ? 'text-green-600' : company.onTimeRate >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {company.onTimeRate}%
-                        </span>
-                      ) : (
-                        <span className="text-gray-300 text-xs">No data</span>
-                      )}
-                      {company.completedLate > 0 && (
-                        <div className="text-[10px] text-red-500">{company.completedLate} late</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      {company.assignedDelayDays > 0 ? (
-                        <span className="text-red-600 font-medium">{company.assignedDelayDays}d</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      {company.weightedDelayDays > 0 ? (
-                        <span className="text-red-700 font-bold">{company.weightedDelayDays}d</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      {company.inheritedDelayDays > 0 ? (
-                        <span className="text-yellow-600">{company.inheritedDelayDays}d</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      {company.recoveryRate >= 0 ? (
-                        <RateBar rate={company.recoveryRate} />
-                      ) : (
-                        <span className="text-gray-300 text-xs">N/A</span>
-                      )}
-                    </td>
-                  </tr>
-                  {/* Expanded detail row */}
-                  {isExpanded && (
-                    <tr key={`${company.companyId}-detail`}>
-                      <td colSpan={9} className="px-4 py-4 bg-gray-50/80 border-b-2 border-blue-200">
-                        {loadingDetails ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent" />
-                            <span className="ml-2 text-sm text-gray-500">Loading details...</span>
-                          </div>
-                        ) : companyDetails ? (
-                          <div>
-                            {/* Summary stats */}
-                            <div className="grid grid-cols-4 gap-3 mb-4">
-                              <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                                <div className="text-lg font-bold">{companyDetails.total}</div>
-                                <div className="text-[10px] text-gray-500">Total Tasks</div>
-                              </div>
-                              <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                                <div className="text-lg font-bold text-green-600">{companyDetails.completed}</div>
-                                <div className="text-[10px] text-gray-500">Completed</div>
-                              </div>
-                              <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                                <div className="text-lg font-bold text-red-600">{companyDetails.delayed}</div>
-                                <div className="text-[10px] text-gray-500">Delayed</div>
-                              </div>
-                              <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                                <div className="text-lg font-bold text-blue-600">{companyDetails.onTrack}</div>
-                                <div className="text-[10px] text-gray-500">On Track</div>
-                              </div>
-                            </div>
-
-                            {/* Task list with delays */}
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                              Recent Tasks ({Math.min(companyDetails.tasks.length, 50)} of {companyDetails.total})
-                            </div>
-                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                              {companyDetails.tasks.map((task: any) => (
-                                <div key={task.id} className="bg-white rounded-lg px-3 py-2 border border-gray-100 flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                    task.status === 'completed' ? 'bg-green-500' :
-                                    task.status === 'delayed' ? 'bg-red-500' :
-                                    task.status === 'in_progress' ? 'bg-indigo-500' :
-                                    'bg-gray-300'
-                                  }`} />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium truncate">{task.task_name}</div>
-                                    <div className="text-[10px] text-gray-400">
-                                      {task.zoneName || 'No zone'} · {task.planned_start} → {task.planned_end}
-                                      {task.actual_end && (
-                                        <span className={task.actual_end <= task.planned_end ? ' text-green-600' : ' text-red-600'}>
-                                          {' '}(done {task.actual_end})
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-end gap-0.5">
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                      task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                                      task.status === 'delayed' ? 'bg-red-100 text-red-700' :
-                                      'bg-gray-100 text-gray-500'
-                                    }`}>
-                                      {task.status.replace('_', ' ')}
-                                    </span>
-                                    {task.inherited_delay_days > 0 && (
-                                      <span className="text-[10px] text-yellow-600">{task.inherited_delay_days}d inherited</span>
-                                    )}
-                                    {task.delays?.length > 0 && task.delays.map((d: any, di: number) => (
-                                      <span key={di} className={`text-[10px] ${d.delay_type === 'assigned' ? 'text-red-600 font-medium' : 'text-yellow-600'}`}>
-                                        {d.delay_type}: {d.delay_days}d ({d.reason})
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-center text-gray-400 text-sm py-4">No details available</div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                  </>
-                );
-              })}
+              {sorted.map((company, i) => (
+                <tr
+                  key={company.companyId}
+                  onClick={() => setSelectedCompanyId(company.companyId)}
+                  className={`hover:bg-gray-50 cursor-pointer transition min-h-[44px] ${selectedCompanyId === company.companyId ? 'bg-blue-50/50' : ''}`}
+                >
+                  <td className="px-3 py-3 text-gray-400 sticky left-0 bg-inherit z-10">{i + 1}</td>
+                  <td className="px-3 py-3 sticky left-8 bg-inherit z-10">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: company.companyColor ? `#${company.companyColor}` : '#9ca3af' }}
+                      />
+                      <span className="font-bold text-gray-900">{company.companyName}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {company.completedTasks}/{company.totalTasks}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {company.onTimeRate >= 0 ? (
+                      <span className={`font-bold ${getOnTimeColor(company.onTimeRate)}`}>
+                        {company.onTimeRate}%
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">No data</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    {company.assignedDelayDays > 0 ? (
+                      <span className="text-red-600 font-bold">{company.assignedDelayDays}d</span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className={`font-bold ${getPpcColor(company.ppc)}`}>{company.ppc}%</span>
+                  </td>
+                  <td className="px-3 py-3 text-right hidden md:table-cell">
+                    {company.recoveryRate >= 0 ? (
+                      <RateBar rate={company.recoveryRate} />
+                    ) : (
+                      <span className="text-gray-300 text-xs">N/A</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
-      {sorted.length === 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-500 mt-4">
-          No recovery data yet. Complete some site walks and record delays to see the scorecard.
-        </div>
-      )}
+      {/* Drill-Down Sheet */}
+      <Sheet open={selectedCompanyId !== null} onOpenChange={(open: boolean) => !open && setSelectedCompanyId(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          {selectedCompany && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: selectedCompany.companyColor ? `#${selectedCompany.companyColor}` : '#9ca3af' }}
+                  />
+                  {selectedCompany.companyName}
+                </SheetTitle>
+                <SheetDescription>
+                  {selectedCompany.totalTasks} tasks — {selectedCompany.onTimeRate >= 0 ? `${selectedCompany.onTimeRate}%` : 'N/A'} on-time
+                </SheetDescription>
+              </SheetHeader>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-lg font-bold">{selectedCompany.totalTasks}</div>
+                  <div className="text-xs text-gray-500">Total</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-lg font-bold text-green-600">{selectedCompany.completedTasks}</div>
+                  <div className="text-xs text-gray-500">Completed</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-lg font-bold text-green-600">{selectedCompany.onTimeTasks}</div>
+                  <div className="text-xs text-gray-500">On-Time</div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <div className="text-lg font-bold text-red-600">{selectedCompany.lateTasks}</div>
+                  <div className="text-xs text-gray-500">Late</div>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              {/* Task List */}
+              <div className="space-y-2">
+                {selectedCompany.tasks.map((task) => (
+                  <div key={task.id} className="bg-white rounded-lg border border-gray-100 p-3 min-h-[44px]">
+                    <div className="flex items-start gap-2">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
+                        task.status === 'completed' ? 'bg-green-500' :
+                        task.status === 'delayed' ? 'bg-red-500' :
+                        task.status === 'in_progress' ? 'bg-indigo-500' :
+                        'bg-gray-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold truncate">{task.taskName}</div>
+                        <div className="text-xs text-gray-500">
+                          {task.zoneName} — {task.buildingCode} — Floor {task.zoneFloor ?? '—'}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          Planned: {task.plannedStart} to {task.plannedEnd}
+                          {task.actualStart && (
+                            <span> · Actual: {task.actualStart} to {task.actualEnd || 'ongoing'}</span>
+                          )}
+                        </div>
+                        {task.delays.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {task.delays.map((d) => (
+                              <Badge key={d.id} variant="outline" className="text-xs">
+                                {d.delayType}: {d.delayDays}d ({d.reason})
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {task.delays.length === 0 && (
+                          <div className="text-xs text-gray-400 mt-1">No delays recorded for this task.</div>
+                        )}
+                        <div className="text-xs text-blue-600 cursor-default opacity-50 mt-1">
+                          View downstream impact
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {selectedCompany.tasks.length === 0 && (
+                  <div className="text-center text-gray-400 text-sm py-4">No tasks found</div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+
+// --- Sub-Components ---
 
 function RateBar({ rate }: { rate: number }) {
   const color =
@@ -464,22 +538,10 @@ function RateBar({ rate }: { rate: number }) {
 
   return (
     <div className="flex items-center gap-2 justify-end">
-      <div className="w-14 h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full print-bar ${color}`} style={{ width: `${Math.min(100, rate)}%` }} />
+      <div className="w-10 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, rate)}%` }} />
       </div>
-      <span className="text-xs font-medium w-8 text-right">{rate}%</span>
+      <span className="text-xs font-normal text-gray-500 w-8 text-right">{rate}%</span>
     </div>
-  );
-}
-
-function HealthBadge({ score }: { score: number }) {
-  const color = score >= 80 ? 'bg-green-100 text-green-700' :
-    score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-    score >= 40 ? 'bg-orange-100 text-orange-700' :
-    'bg-red-100 text-red-700';
-  return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${color}`}>
-      {score}
-    </span>
   );
 }
