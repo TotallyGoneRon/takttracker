@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ChevronUp, ChevronDown, X } from 'lucide-react';
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -89,13 +87,6 @@ interface Building {
 
 // --- Helpers ---
 
-function getOnTimeColor(rate: number): string {
-  if (rate === -1) return 'text-gray-300';
-  if (rate >= 90) return 'text-green-600';
-  if (rate >= 70) return 'text-yellow-600';
-  return 'text-red-600';
-}
-
 function getPpcColor(ppc: number): string {
   if (ppc >= 80) return 'text-green-600';
   if (ppc >= 50) return 'text-yellow-600';
@@ -105,7 +96,6 @@ function getPpcColor(ppc: number): string {
 // --- Chart Config ---
 
 const chartConfig: ChartConfig = {
-  onTimeRate: { label: 'On-Time Rate', color: '#22c55e' },
   delayDays: { label: 'Delay Days', color: '#ef4444' },
 };
 
@@ -114,7 +104,7 @@ const chartConfig: ChartConfig = {
 export default function ScorecardPage() {
   const params = useParams();
   const planId = params.planId as string;
-  const [sortBy, setSortBy] = useState<string>('onTimeRate');
+  const [sortBy, setSortBy] = useState<string>('ppc');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
@@ -138,13 +128,13 @@ export default function ScorecardPage() {
   };
 
   const selectedCompany = scorecard?.companies.find(c => c.companyId === selectedCompanyId) || null;
+  const panelOpen = selectedCompanyId !== null;
 
   // Sort companies
   const sorted = scorecard ? [...scorecard.companies].sort((a, b) => {
     const aVal = (a as any)[sortBy] ?? 0;
     const bVal = (b as any)[sortBy] ?? 0;
-    // Push -1 (no data) to bottom for rate columns
-    if (sortBy === 'onTimeRate' || sortBy === 'recoveryRate') {
+    if (sortBy === 'recoveryRate') {
       if (aVal === -1 && bVal === -1) return 0;
       if (aVal === -1) return 1;
       if (bVal === -1) return -1;
@@ -156,8 +146,8 @@ export default function ScorecardPage() {
   if (isLoading) {
     return (
       <div className="p-4 md:p-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map(i => (
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          {[1, 2, 3].map(i => (
             <Card key={i}>
               <CardContent className="p-4 md:p-6 text-center">
                 <Skeleton className="h-8 w-20 mx-auto mb-2" />
@@ -216,124 +206,94 @@ export default function ScorecardPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 no-print">
-        <div>
-          <h2 className="text-xl font-bold">
-            {scorecard.building ? `${scorecard.building.name} Scorecard` : 'Project Scorecard'}
-          </h2>
-          <p className="text-sm text-gray-500">Trade performance & accountability</p>
-        </div>
-        <div className="flex gap-2">
-          {buildings.length > 0 && (
-            <select
-              value={selectedBuildingId}
-              onChange={(e) => setSelectedBuildingId(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[44px]"
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Main Content — shrinks when panel is open */}
+      <div className={`flex-1 min-w-0 transition-all duration-300 p-4 md:p-6 ${panelOpen ? 'md:mr-[480px]' : ''}`}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 no-print">
+          <div>
+            <h2 className="text-xl font-bold">
+              {scorecard.building ? `${scorecard.building.name} Scorecard` : 'Project Scorecard'}
+            </h2>
+            <p className="text-sm text-gray-500">Trade performance & accountability</p>
+          </div>
+          <div className="flex gap-2">
+            {buildings.length > 0 && (
+              <select
+                value={selectedBuildingId}
+                onChange={(e) => setSelectedBuildingId(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm min-h-[44px]"
+              >
+                <option value="">All Project</option>
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            )}
+            <Button variant="outline" className="min-h-[44px]" onClick={() => window.print()}>
+              Print Scorecard
+            </Button>
+            <Link
+              href={`/schedule/${planId}`}
+              className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 min-h-[44px] flex items-center"
             >
-              <option value="">All Project</option>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          )}
-          <Button variant="outline" className="min-h-[44px]" onClick={() => window.print()}>
-            Print Scorecard
-          </Button>
-          <Link
-            href={`/schedule/${planId}`}
-            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 min-h-[44px] flex items-center"
-          >
-            ← Timeline
-          </Link>
+              ← Timeline
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4 md:p-6 text-center">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <div>
-                    <div className={`text-2xl font-bold ${getPpcColor(scorecard.overall.ppc)}`}>
-                      {scorecard.overall.ppc}%
+        {/* Stat Cards — 3 cards (removed On-Time Rate) */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-4 md:p-6 text-center">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div>
+                      <div className={`text-2xl font-bold ${getPpcColor(scorecard.overall.ppc)}`}>
+                        {scorecard.overall.ppc}%
+                      </div>
+                      <div className="text-xs font-bold text-gray-500">Plan Complete (PPC)</div>
                     </div>
-                    <div className="text-xs font-bold text-gray-500">Plan Complete (PPC)</div>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Percent Plan Complete: completed tasks / tasks due by today</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className={`text-2xl font-bold ${getOnTimeColor(scorecard.overall.onTimeRate)}`}>
-              {scorecard.overall.onTimeRate >= 0 ? `${scorecard.overall.onTimeRate}%` : 'N/A'}
-            </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <div className="text-xs font-bold text-gray-500">Overall On-Time</div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Percentage of completed tasks finished on or before planned end date</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className={`text-2xl font-bold ${scorecard.overall.totalAssignedDelayDays > 0 ? 'text-red-600' : 'text-gray-300'}`}>
-              {scorecard.overall.totalAssignedDelayDays > 0 ? scorecard.overall.totalAssignedDelayDays : '—'}
-            </div>
-            <div className="text-xs font-bold text-gray-500">Total Delay Days</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 md:p-6 text-center">
-            <div className="text-2xl font-bold text-gray-900">
-              {scorecard.overall.completedTasks}/{scorecard.overall.totalTasks}
-            </div>
-            <div className="text-xs font-bold text-gray-500">Tasks Complete</div>
-          </CardContent>
-        </Card>
-      </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Percent Plan Complete: completed tasks / tasks due by today</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 md:p-6 text-center">
+              <div className={`text-2xl font-bold ${scorecard.overall.totalAssignedDelayDays > 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                {scorecard.overall.totalAssignedDelayDays > 0 ? scorecard.overall.totalAssignedDelayDays : '—'}
+              </div>
+              <div className="text-xs font-bold text-gray-500">Total Delay Days</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 md:p-6 text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {scorecard.overall.completedTasks}/{scorecard.overall.totalTasks}
+              </div>
+              <div className="text-xs font-bold text-gray-500">Tasks Complete</div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Trend Charts */}
-      <Card className="mb-8">
-        <CardContent className="p-4">
-          {scorecard.trends.length === 0 ? (
-            <div className="text-center py-8">
-              <h3 className="text-sm font-bold text-gray-700">Trend data will appear as tasks complete</h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Weekly on-time rate and delay trends accumulate automatically from task completions.
-              </p>
-            </div>
-          ) : (
-            <Tabs defaultValue="onTimeRate">
-              <TabsList>
-                <TabsTrigger value="onTimeRate">On-Time Rate</TabsTrigger>
-                <TabsTrigger value="delayDays">Delay Days</TabsTrigger>
-              </TabsList>
-              <TabsContent value="onTimeRate">
-                <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px] w-full">
-                  <LineChart data={scorecard.trends}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" tickFormatter={(w: string) => w.replace(/^\d{4}-/, '')} />
-                    <YAxis domain={[0, 100]} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="onTimeRate" stroke="var(--color-onTimeRate)" strokeWidth={2} dot={{ r: 4 }} />
-                  </LineChart>
-                </ChartContainer>
-              </TabsContent>
-              <TabsContent value="delayDays">
+        {/* Trend Chart — Delay Days only */}
+        <Card className="mb-8">
+          <CardContent className="p-4">
+            {scorecard.trends.length === 0 ? (
+              <div className="text-center py-8">
+                <h3 className="text-sm font-bold text-gray-700">Trend data will appear as tasks complete</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Weekly delay trends accumulate automatically from task completions.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-sm font-bold text-gray-600 mb-3">Delay Days by Week</h3>
                 <ChartContainer config={chartConfig} className="h-[200px] md:h-[250px] w-full">
                   <BarChart data={scorecard.trends}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -343,187 +303,184 @@ export default function ScorecardPage() {
                     <Bar dataKey="delayDays" fill="var(--color-delayDays)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Leaderboard Table */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-3 py-3 font-bold text-gray-600 sticky left-0 bg-gray-50 z-10 w-8">#</th>
-                <th className="text-left px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900 sticky left-8 bg-gray-50 z-10 min-w-[130px]"
-                  onClick={() => handleSort('companyName')}>
-                  Company <SortIcon col="companyName" />
-                </th>
-                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('totalTasks')}>
-                  Tasks <SortIcon col="totalTasks" />
-                </th>
-                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('onTimeRate')}>
-                  On-Time % <SortIcon col="onTimeRate" />
-                </th>
-                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('assignedDelayDays')}>
-                  Caused <SortIcon col="assignedDelayDays" />
-                </th>
-                <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
-                  onClick={() => handleSort('ppc')}>
-                  PPC <SortIcon col="ppc" />
-                </th>
-                <th className="text-right px-3 py-3 font-normal text-gray-500 cursor-pointer hover:text-gray-900 hidden md:table-cell"
-                  onClick={() => handleSort('recoveryRate')}>
-                  Recovery <SortIcon col="recoveryRate" />
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sorted.map((company, i) => (
-                <tr
-                  key={company.companyId}
-                  onClick={() => setSelectedCompanyId(company.companyId)}
-                  className={`hover:bg-gray-50 cursor-pointer transition min-h-[44px] ${selectedCompanyId === company.companyId ? 'bg-blue-50/50' : ''}`}
-                >
-                  <td className="px-3 py-3 text-gray-400 sticky left-0 bg-inherit z-10">{i + 1}</td>
-                  <td className="px-3 py-3 sticky left-8 bg-inherit z-10">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: company.companyColor ? `#${company.companyColor}` : '#9ca3af' }}
-                      />
-                      <span className="font-bold text-gray-900">{company.companyName}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    {company.completedTasks}/{company.totalTasks}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    {company.onTimeRate >= 0 ? (
-                      <span className={`font-bold ${getOnTimeColor(company.onTimeRate)}`}>
-                        {company.onTimeRate}%
-                      </span>
-                    ) : (
-                      <span className="text-gray-300 text-xs">No data</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    {company.assignedDelayDays > 0 ? (
-                      <span className="text-red-600 font-bold">{company.assignedDelayDays}d</span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <span className={`font-bold ${getPpcColor(company.ppc)}`}>{company.ppc}%</span>
-                  </td>
-                  <td className="px-3 py-3 text-right hidden md:table-cell">
-                    {company.recoveryRate >= 0 ? (
-                      <RateBar rate={company.recoveryRate} />
-                    ) : (
-                      <span className="text-gray-300 text-xs">N/A</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Drill-Down Sheet */}
-      <Sheet open={selectedCompanyId !== null} onOpenChange={(open: boolean) => !open && setSelectedCompanyId(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-          {selectedCompany && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: selectedCompany.companyColor ? `#${selectedCompany.companyColor}` : '#9ca3af' }}
-                  />
-                  {selectedCompany.companyName}
-                </SheetTitle>
-                <SheetDescription>
-                  {selectedCompany.totalTasks} tasks — {selectedCompany.onTimeRate >= 0 ? `${selectedCompany.onTimeRate}%` : 'N/A'} on-time
-                </SheetDescription>
-              </SheetHeader>
-
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold">{selectedCompany.totalTasks}</div>
-                  <div className="text-xs text-gray-500">Total</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-green-600">{selectedCompany.completedTasks}</div>
-                  <div className="text-xs text-gray-500">Completed</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-green-600">{selectedCompany.onTimeTasks}</div>
-                  <div className="text-xs text-gray-500">On-Time</div>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <div className="text-lg font-bold text-red-600">{selectedCompany.lateTasks}</div>
-                  <div className="text-xs text-gray-500">Late</div>
-                </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              <Separator className="my-4" />
+        {/* Leaderboard Table — removed On-Time % column */}
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-3 py-3 font-bold text-gray-600 sticky left-0 bg-gray-50 z-10 w-8">#</th>
+                  <th className="text-left px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900 sticky left-8 bg-gray-50 z-10 min-w-[130px]"
+                    onClick={() => handleSort('companyName')}>
+                    Company <SortIcon col="companyName" />
+                  </th>
+                  <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                    onClick={() => handleSort('totalTasks')}>
+                    Tasks <SortIcon col="totalTasks" />
+                  </th>
+                  <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                    onClick={() => handleSort('assignedDelayDays')}>
+                    Delay Days <SortIcon col="assignedDelayDays" />
+                  </th>
+                  <th className="text-right px-3 py-3 font-bold text-gray-600 cursor-pointer hover:text-gray-900"
+                    onClick={() => handleSort('ppc')}>
+                    PPC <SortIcon col="ppc" />
+                  </th>
+                  <th className="text-right px-3 py-3 font-normal text-gray-500 cursor-pointer hover:text-gray-900 hidden md:table-cell"
+                    onClick={() => handleSort('recoveryRate')}>
+                    Recovery <SortIcon col="recoveryRate" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {sorted.map((company, i) => (
+                  <tr
+                    key={company.companyId}
+                    onClick={() => setSelectedCompanyId(company.companyId)}
+                    className={`hover:bg-gray-50 cursor-pointer transition min-h-[44px] ${selectedCompanyId === company.companyId ? 'bg-blue-50/50' : ''}`}
+                  >
+                    <td className="px-3 py-3 text-gray-400 sticky left-0 bg-inherit z-10">{i + 1}</td>
+                    <td className="px-3 py-3 sticky left-8 bg-inherit z-10">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: company.companyColor ? `#${company.companyColor}` : '#9ca3af' }}
+                        />
+                        <span className="font-bold text-gray-900">{company.companyName}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      {company.completedTasks}/{company.totalTasks}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      {company.assignedDelayDays > 0 ? (
+                        <span className="text-red-600 font-bold">{company.assignedDelayDays}d</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <span className={`font-bold ${getPpcColor(company.ppc)}`}>{company.ppc}%</span>
+                    </td>
+                    <td className="px-3 py-3 text-right hidden md:table-cell">
+                      {company.recoveryRate >= 0 ? (
+                        <RateBar rate={company.recoveryRate} />
+                      ) : (
+                        <span className="text-gray-300 text-xs">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
 
-              {/* Task List */}
-              <div className="space-y-2">
-                {selectedCompany.tasks.map((task) => (
-                  <div key={task.id} className="bg-white rounded-lg border border-gray-100 p-3 min-h-[44px]">
-                    <div className="flex items-start gap-2">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
-                        task.status === 'completed' ? 'bg-green-500' :
-                        task.status === 'delayed' ? 'bg-red-500' :
-                        task.status === 'in_progress' ? 'bg-indigo-500' :
-                        'bg-gray-400'
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold truncate">{task.taskName}</div>
-                        <div className="text-xs text-gray-500">
-                          {task.zoneName} — {task.buildingCode} — Floor {task.zoneFloor ?? '—'}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          Planned: {task.plannedStart} to {task.plannedEnd}
-                          {task.actualStart && (
-                            <span> · Actual: {task.actualStart} to {task.actualEnd || 'ongoing'}</span>
-                          )}
-                        </div>
-                        {task.delays.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {task.delays.map((d) => (
-                              <Badge key={d.id} variant="outline" className="text-xs">
-                                {d.delayType}: {d.delayDays}d ({d.reason})
-                              </Badge>
-                            ))}
-                          </div>
+      {/* Drill-Down Side Panel — pushes content over */}
+      {panelOpen && selectedCompany && (
+        <div className="fixed top-0 right-0 h-full w-full md:w-[480px] bg-white border-l border-gray-200 shadow-lg z-40 overflow-y-auto transition-transform duration-300">
+          {/* Panel Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: selectedCompany.companyColor ? `#${selectedCompany.companyColor}` : '#9ca3af' }}
+              />
+              <h3 className="font-bold text-lg truncate">{selectedCompany.companyName}</h3>
+            </div>
+            <button
+              onClick={() => setSelectedCompanyId(null)}
+              className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <X className="w-5 h-5" />
+              <span className="sr-only">Close trade detail panel</span>
+            </button>
+          </div>
+
+          <div className="p-4">
+            {/* Description */}
+            <p className="text-sm text-gray-500 mb-4">
+              {selectedCompany.totalTasks} tasks — {selectedCompany.completedTasks} completed — PPC {selectedCompany.ppc}%
+            </p>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold">{selectedCompany.totalTasks}</div>
+                <div className="text-xs text-gray-500">Total</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-green-600">{selectedCompany.completedTasks}</div>
+                <div className="text-xs text-gray-500">Completed</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-red-600">
+                  {selectedCompany.assignedDelayDays > 0 ? `${selectedCompany.assignedDelayDays}d` : '—'}
+                </div>
+                <div className="text-xs text-gray-500">Delay Days</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <div className={`text-lg font-bold ${getPpcColor(selectedCompany.ppc)}`}>{selectedCompany.ppc}%</div>
+                <div className="text-xs text-gray-500">PPC</div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Task List */}
+            <div className="space-y-2">
+              {selectedCompany.tasks.map((task) => (
+                <div key={task.id} className="bg-white rounded-lg border border-gray-100 p-3 min-h-[44px]">
+                  <div className="flex items-start gap-2">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
+                      task.status === 'completed' ? 'bg-green-500' :
+                      task.status === 'delayed' ? 'bg-red-500' :
+                      task.status === 'in_progress' ? 'bg-indigo-500' :
+                      'bg-gray-400'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold truncate">{task.taskName}</div>
+                      <div className="text-xs text-gray-500">
+                        {task.zoneName} — {task.buildingCode} — Floor {task.zoneFloor ?? '—'}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Planned: {task.plannedStart} to {task.plannedEnd}
+                        {task.actualStart && (
+                          <span> · Actual: {task.actualStart} to {task.actualEnd || 'ongoing'}</span>
                         )}
-                        {task.delays.length === 0 && (
-                          <div className="text-xs text-gray-400 mt-1">No delays recorded for this task.</div>
-                        )}
-                        <div className="text-xs text-blue-600 cursor-default opacity-50 mt-1">
-                          View downstream impact
+                      </div>
+                      {task.delays.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {task.delays.map((d) => (
+                            <Badge key={d.id} variant="outline" className="text-xs">
+                              {d.delayType}: {d.delayDays}d ({d.reason})
+                            </Badge>
+                          ))}
                         </div>
+                      )}
+                      {task.delays.length === 0 && (
+                        <div className="text-xs text-gray-400 mt-1">No delays recorded for this task.</div>
+                      )}
+                      <div className="text-xs text-blue-600 cursor-default opacity-50 mt-1">
+                        View downstream impact
                       </div>
                     </div>
                   </div>
-                ))}
-                {selectedCompany.tasks.length === 0 && (
-                  <div className="text-center text-gray-400 text-sm py-4">No tasks found</div>
-                )}
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+                </div>
+              ))}
+              {selectedCompany.tasks.length === 0 && (
+                <div className="text-center text-gray-400 text-sm py-4">No tasks found</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
