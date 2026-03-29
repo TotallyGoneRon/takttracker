@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -60,7 +61,6 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   blocked: 'bg-red-700',
 };
 
-const MAX_SHOW_ALL_TASKS = 200;
 
 function getCurrentWeek() {
   // Mountain Time, Mon-Fri work week (weekends don't count)
@@ -113,6 +113,32 @@ export default function SchedulePage() {
   const [buildingFilter, setBuildingFilter] = useState('all');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>(getCurrentWeek);
   const [showAllDates, setShowAllDates] = useState(false);
+  const [expandedBuildings, setExpandedBuildings] = useState<Set<string>>(new Set());
+  const [expandedFloors, setExpandedFloors] = useState<Set<string>>(new Set());
+
+  const toggleBuilding = useCallback((key: string) => {
+    setExpandedBuildings(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleFloor = useCallback((key: string) => {
+    setExpandedFloors(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const countTasks = (zoneMap: Map<string, Task[]>): number => {
+    let count = 0;
+    zoneMap.forEach(tasks => { count += tasks.length; });
+    return count;
+  };
 
   // Reset to current week
   const resetToThisWeek = useCallback(() => {
@@ -138,18 +164,6 @@ export default function SchedulePage() {
         const res = await fetch(`/tracking/api/plans/${planId}?${params}`);
         if (!res.ok) throw new Error('Failed to load');
         const json = await res.json();
-
-        // PERFORMANCE: Limit tasks when showing all dates
-        if (showAllDates && json.tasks.length > MAX_SHOW_ALL_TASKS) {
-          json.tasks = json.tasks.slice(0, MAX_SHOW_ALL_TASKS);
-          json.stats = {
-            ...json.stats,
-            total: json.tasks.length,
-            _truncated: true,
-            _originalTotal: json.stats.total,
-          };
-        }
-
         setData(json);
       } catch (err) {
         setError('Failed to load schedule data. Please check your connection and refresh.');
@@ -159,6 +173,12 @@ export default function SchedulePage() {
     };
     fetchData();
   }, [planId, dateRange, statusFilter, buildingFilter, showAllDates]);
+
+  // Reset expanded state when building filter changes
+  useEffect(() => {
+    setExpandedBuildings(new Set());
+    setExpandedFloors(new Set());
+  }, [buildingFilter]);
 
   // Group tasks by building -> floor -> zone
   const groupedTasks = useMemo(() => {
@@ -215,9 +235,6 @@ export default function SchedulePage() {
 
   if (!data) return <div className="p-6">Plan not found</div>;
 
-  const isTruncated = (data.stats as Record<string, unknown>)._truncated;
-  const originalTotal = (data.stats as Record<string, unknown>)._originalTotal as number | undefined;
-
   return (
     <div className="p-4 md:p-6">
       {/* Header */}
@@ -226,12 +243,9 @@ export default function SchedulePage() {
           <h2 className="text-xl font-bold">{data.plan.name}</h2>
           <p className="text-sm text-gray-500">
             {data.stats.total} tasks shown
-            {isTruncated && originalTotal ? (
-              <span className="text-yellow-600 ml-1">(limited to {MAX_SHOW_ALL_TASKS} of {originalTotal})</span>
-            ) : null}
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="hidden md:flex gap-2 flex-wrap">
           <Link
             href={`/schedule/${planId}/site-walk`}
             className="px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 min-h-[44px] flex items-center"
@@ -334,53 +348,91 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* Task List grouped by building/zone */}
-      <div className="space-y-4">
-        {Array.from(groupedTasks.entries()).map(([building, zoneMap]: [string, Map<string, Task[]>]) => (
-          <div key={building} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2 font-semibold text-sm border-b border-gray-200">
-              {building}
-            </div>
-            {Array.from(zoneMap.entries()).map(([zone, zoneTasks]: [string, Task[]]) => (
-              <div key={zone} className="border-b border-gray-100 last:border-0">
-                <div className="px-4 py-1.5 bg-gray-25 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  {zone}
-                </div>
-                <div className="divide-y divide-gray-50">
-                  {zoneTasks.map((task) => (
-                    <div key={task.id} className="px-4 py-2 flex items-center gap-3 hover:bg-gray-50">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 status-transition ${STATUS_DOT_COLORS[task.status] || 'bg-gray-400'}`} />
-                      <div
-                        className="w-3 h-8 rounded-sm flex-shrink-0"
-                        style={{ backgroundColor: task.activityColor || '#9ca3af' }}
-                        title={task.activityName}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{task.task_name}</div>
-                        <div className="text-xs text-gray-500">
-                          {task.company?.name || 'Unassigned'} · {task.planned_start} → {task.planned_end}
-                        </div>
+      {/* Task List — Collapsible Building > Floor > Tasks (D-11, D-12) */}
+      <div className="space-y-2">
+        {Array.from(groupedTasks.entries()).map(([building, zoneMap]) => {
+          const buildingExpanded = expandedBuildings.has(building);
+          const taskCount = countTasks(zoneMap);
+          return (
+            <div key={building} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              {/* Building header — collapsible (D-11) */}
+              <button
+                onClick={() => toggleBuilding(building)}
+                className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-left min-h-[44px] hover:bg-gray-100 transition"
+              >
+                <ChevronRight
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${
+                    buildingExpanded ? 'rotate-90' : ''
+                  }`}
+                />
+                <span className="font-semibold text-sm">{building}</span>
+                <span className="text-xs text-gray-500 ml-auto">{taskCount} tasks</span>
+              </button>
+
+              {/* Only render children when expanded (conditional rendering, NOT display:none) */}
+              {buildingExpanded && (
+                <div>
+                  {Array.from(zoneMap.entries()).map(([zone, zoneTasks]) => {
+                    const floorKey = `${building}::${zone}`;
+                    const floorExpanded = expandedFloors.has(floorKey);
+                    return (
+                      <div key={zone} className="border-b border-gray-100 last:border-0">
+                        {/* Floor/zone sub-header — collapsible (D-12) */}
+                        <button
+                          onClick={() => toggleFloor(floorKey)}
+                          className="w-full flex items-center gap-2 pl-8 pr-4 py-2 text-left min-h-[44px] hover:bg-gray-50 transition"
+                        >
+                          <ChevronRight
+                            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-shrink-0 ${
+                              floorExpanded ? 'rotate-90' : ''
+                            }`}
+                          />
+                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{zone}</span>
+                          <span className="text-xs text-gray-400 ml-auto">{zoneTasks.length} tasks</span>
+                        </button>
+
+                        {/* Tasks — only rendered when floor is expanded */}
+                        {floorExpanded && (
+                          <div className="divide-y divide-gray-50">
+                            {zoneTasks.map((task) => (
+                              <div key={task.id} className="pl-14 pr-4 py-2 flex items-center gap-3 hover:bg-gray-50">
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_COLORS[task.status] || 'bg-gray-400'}`} />
+                                <div
+                                  className="w-3 h-8 rounded-sm flex-shrink-0"
+                                  style={{ backgroundColor: task.activityColor || '#9ca3af' }}
+                                  title={task.activityName}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{task.task_name}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {task.company?.name || 'Unassigned'} · {task.planned_start} → {task.planned_end}
+                                  </div>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[task.status] || ''}`}>
+                                  {task.status.replace('_', ' ')}
+                                </span>
+                                {task.recovery_points > 0 && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 whitespace-nowrap hidden sm:inline-flex">
+                                    +{task.recovery_points} RP
+                                  </span>
+                                )}
+                                {task.inherited_delay_days > 0 && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 whitespace-nowrap hidden sm:inline-flex">
+                                    {task.inherited_delay_days}d inherited
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full status-transition ${STATUS_COLORS[task.status] || ''}`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
-                      {task.recovery_points > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                          +{task.recovery_points} RP
-                        </span>
-                      )}
-                      {task.inherited_delay_days > 0 && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                          {task.inherited_delay_days}d inherited
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              </div>
-            ))}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {data.tasks.length === 0 && (
