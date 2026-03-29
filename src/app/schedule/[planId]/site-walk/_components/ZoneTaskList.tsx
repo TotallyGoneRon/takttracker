@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { formatDate, getToday, completionStatus } from '@/lib/dates';
 import { Task, ZoneInfo, EntryRecord } from './types';
+import { EntryCard } from './EntryCard';
+import { EntryDetailPanel } from './EntryDetailPanel';
 
 interface ZoneTaskListProps {
   zone: ZoneInfo;
@@ -12,6 +15,14 @@ interface ZoneTaskListProps {
   saving: boolean;
   error: string | null;
   onDismissError: () => void;
+  onPhotoUpload: (entryId: number, file: File) => void;
+  onPhotoDelete: (entryId: number) => void;
+  onSeverityChange: (entryId: number, severity: string | null) => void;
+  onPercentChange: (entryId: number, percent: number | null) => void;
+  onNotesChange: (entryId: number, notes: string) => void;
+  onShowPhotoOverlay: (entry: EntryRecord) => void;
+  photoStates: Record<number, { uploading: boolean; error: boolean }>;
+  onPhotoRetry?: (entryId: number) => void;
 }
 
 function ErrorBanner({ error, onDismiss }: { error: string | null; onDismiss: () => void }) {
@@ -25,7 +36,12 @@ function ErrorBanner({ error, onDismiss }: { error: string | null; onDismiss: ()
   );
 }
 
-export function ZoneTaskList({ zone, entries, onTaskSelect, onMarkAllOnTrack, onBack, saving, error, onDismissError }: ZoneTaskListProps) {
+export function ZoneTaskList({
+  zone, entries, onTaskSelect, onMarkAllOnTrack, onBack, saving, error, onDismissError,
+  onPhotoUpload, onPhotoDelete, onSeverityChange, onPercentChange, onNotesChange,
+  onShowPhotoOverlay, photoStates, onPhotoRetry,
+}: ZoneTaskListProps) {
+  const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
   const checkedIds = new Set(entries.map((e) => e.task.id));
   const sorted = [...zone.tasks].sort((a, b) => {
     const endCmp = a.planned_end.localeCompare(b.planned_end);
@@ -65,11 +81,37 @@ export function ZoneTaskList({ zone, entries, onTaskSelect, onMarkAllOnTrack, on
             ? completionStatus(entry.completedDate, task.planned_end)
             : null;
 
+          // Recorded entries show as expandable EntryCard
+          if (isChecked && entry) {
+            const ps = photoStates[entry.id] || { uploading: false, error: false };
+            return (
+              <EntryCard
+                key={task.id}
+                entry={entry}
+                isExpanded={expandedEntryId === entry.id}
+                onToggleExpand={() => setExpandedEntryId(expandedEntryId === entry.id ? null : entry.id)}
+              >
+                <EntryDetailPanel
+                  entry={entry}
+                  onPhotoUpload={onPhotoUpload}
+                  onPhotoDelete={onPhotoDelete}
+                  onSeverityChange={onSeverityChange}
+                  onPercentChange={onPercentChange}
+                  onNotesChange={onNotesChange}
+                  photoUploading={ps.uploading}
+                  photoError={ps.error}
+                  onPhotoRetry={onPhotoRetry ? () => onPhotoRetry(entry.id) : undefined}
+                  onShowOverlay={() => onShowPhotoOverlay(entry)}
+                />
+              </EntryCard>
+            );
+          }
+
+          // Unrecorded tasks keep existing button
           return (
             <button key={task.id} onClick={() => onTaskSelect(task)}
               className={`w-full p-4 rounded-xl border-2 text-left transition-all active:scale-98 ${
-                isChecked ? (entry?.status === 'completed' ? 'border-emerald-300 bg-emerald-50' : entry?.status === 'delayed' ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50')
-                : isOverdue ? 'border-red-200 bg-red-50/50'
+                isOverdue ? 'border-red-200 bg-red-50/50'
                 : 'border-gray-200 bg-white hover:bg-gray-50'
               }`}>
               <div className="flex items-center gap-3">
@@ -84,22 +126,12 @@ export function ZoneTaskList({ zone, entries, onTaskSelect, onMarkAllOnTrack, on
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {isChecked && entry && (
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      entry.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                      entry.status === 'on_track' ? 'bg-green-100 text-green-700' :
-                      entry.status === 'delayed' ? 'bg-red-100 text-red-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {entry.status === 'completed' ? 'Done' : entry.status.replace('_', ' ')}
-                    </span>
-                  )}
                   {compStatus && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${compStatus.color}`}>
                       {compStatus.label}
                     </span>
                   )}
-                  {task.status === 'completed' && !isChecked && (
+                  {task.status === 'completed' && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Already done</span>
                   )}
                 </div>

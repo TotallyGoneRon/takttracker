@@ -13,6 +13,7 @@ import { DelayDetails } from './_components/DelayDetails';
 import { CompletionDate } from './_components/CompletionDate';
 import { ImpactReview } from './_components/ImpactReview';
 import { WalkSummary } from './_components/WalkSummary';
+import { PhotoOverlay } from './_components/PhotoOverlay';
 
 const QUEUE_KEY = 'taktflow_failed_entries';
 
@@ -53,6 +54,10 @@ export default function SiteWalkPage() {
   const [selectedSuccessors, setSelectedSuccessors] = useState<Set<number>>(new Set());
   const [daysLate, setDaysLate] = useState(0);
   const [lastCompletedTaskId, setLastCompletedTaskId] = useState<number | null>(null);
+
+  // Photo and observation state (lifted to page level)
+  const [photoStates, setPhotoStates] = useState<Record<number, { uploading: boolean; error: boolean }>>({});
+  const [photoOverlayEntry, setPhotoOverlayEntry] = useState<EntryRecord | null>(null);
 
   const totalZones = (() => {
     const filtered = selectedBuilding ? tasks.filter((t) => t.buildingId === selectedBuilding) : tasks;
@@ -198,7 +203,7 @@ export default function SiteWalkPage() {
       const currentWalkId = await ensureWalk();
       if (!currentWalkId) { setSaving(false); return; }
 
-      await apiMutate('/api/site-walks', {
+      const savedEntry = await apiMutate('/api/site-walks', {
         method: 'POST',
         body: JSON.stringify({
           action: 'add_entry',
@@ -222,7 +227,12 @@ export default function SiteWalkPage() {
         });
       }
 
-      setEntries([...entries, { task: selectedTask, status, completedDate: completedOn }]);
+      setEntries([...entries, {
+        id: savedEntry.id,
+        task: selectedTask,
+        status,
+        completedDate: completedOn,
+      }]);
       if (selectedTask.zoneName) {
         setCheckedZones((prev) => new Set(prev).add(selectedTask.zoneName!));
       }
@@ -273,11 +283,11 @@ export default function SiteWalkPage() {
       const cw = await ensureWalk();
       if (!cw) { setSaving(false); return; }
       for (const task of unchecked) {
-        await apiMutate('/api/site-walks', {
+        const savedEntry = await apiMutate('/api/site-walks', {
           method: 'POST',
           body: JSON.stringify({ action: 'add_entry', walkId: cw, taskId: task.id, status: 'on_track', varianceCode: null, notes: null, delayDays: null }),
         });
-        setEntries((prev) => [...prev, { task, status: 'on_track' }]);
+        setEntries((prev) => [...prev, { id: savedEntry.id, task, status: 'on_track' }]);
         if (task.zoneName) setCheckedZones((prev) => new Set(prev).add(task.zoneName!));
       }
       setSelectedZone(null);
@@ -344,39 +354,162 @@ export default function SiteWalkPage() {
     });
   };
 
+  // ─── Photo & Observation Handlers ─────────────────────────────
+
+  const handlePhotoUpload = async (entryId: number, file: File) => {
+    setPhotoStates((prev) => ({ ...prev, [entryId]: { uploading: true, error: false } }));
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      formData.append('entryId', String(entryId));
+      const result = await apiMutate('/api/site-walks/photos', {
+        method: 'POST',
+        body: formData,
+      });
+      setEntries((prev) => prev.map((e) =>
+        e.id === entryId
+          ? { ...e, photoThumbnailUrl: result.thumbnailUrl, photoOriginalUrl: result.originalUrl }
+          : e
+      ));
+      setPhotoStates((prev) => ({ ...prev, [entryId]: { uploading: false, error: false } }));
+    } catch {
+      setPhotoStates((prev) => ({ ...prev, [entryId]: { uploading: false, error: true } }));
+    }
+  };
+
+  const handlePhotoDelete = async (entryId: number) => {
+    try {
+      await apiMutate('/api/site-walks/photos', {
+        method: 'DELETE',
+        body: JSON.stringify({ entryId }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      setEntries((prev) => prev.map((e) =>
+        e.id === entryId
+          ? { ...e, photoThumbnailUrl: null, photoOriginalUrl: null }
+          : e
+      ));
+      setPhotoOverlayEntry(null);
+    } catch {
+      setError('Failed to delete photo. Try again.');
+    }
+  };
+
+  const handleSeverityChange = async (entryId: number, severity: string | null) => {
+    // Optimistic update
+    setEntries((prev) => prev.map((e) =>
+      e.id === entryId ? { ...e, severity } : e
+    ));
+    try {
+      await apiMutate('/api/site-walks', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update_entry', entryId, severity }),
+      });
+    } catch {
+      // Revert on failure
+      setError('Failed to save severity.');
+    }
+  };
+
+  const handlePercentChange = async (entryId: number, percentComplete: number | null) => {
+    // Optimistic update
+    setEntries((prev) => prev.map((e) =>
+      e.id === entryId ? { ...e, percentComplete } : e
+    ));
+    try {
+      await apiMutate('/api/site-walks', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update_entry', entryId, percentComplete }),
+      });
+    } catch {
+      setError('Failed to save percent complete.');
+    }
+  };
+
+  const handleNotesChange = async (entryId: number, entryNotes: string) => {
+    setEntries((prev) => prev.map((e) =>
+      e.id === entryId ? { ...e, notes: entryNotes } : e
+    ));
+    try {
+      await apiMutate('/api/site-walks', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'update_entry', entryId, notes: entryNotes }),
+      });
+    } catch {
+      setError('Failed to save notes.');
+    }
+  };
+
+  const handlePhotoRetake = () => {
+    if (!photoOverlayEntry) return;
+    // Close overlay, trigger a new photo capture by re-opening the file input
+    // The user will tap the camera button on the entry card after overlay closes
+    setPhotoOverlayEntry(null);
+  };
+
+  const handlePhotoRetry = (entryId: number) => {
+    // Clear the error state so user can try again via the camera button
+    setPhotoStates((prev) => ({ ...prev, [entryId]: { uploading: false, error: false } }));
+  };
+
   // ─── Render ────────────────────────────────────────────────────
 
   if (loading) {
     return <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" /></div>;
   }
 
-  if (step === 'select-zone') {
-    return <ZoneSelector buildings={buildings} selectedBuilding={selectedBuilding} onBuildingSelect={setSelectedBuilding} floorGroups={floorGroups} getZonesForFloor={getZonesForFloor} checkedZones={checkedZones} onZoneClick={handleZoneClick} entries={entries} onCompleteWalk={completeWalk} showConfirm={showConfirm} onConfirmShow={() => setShowConfirm(true)} onConfirmHide={() => setShowConfirm(false)} totalZones={totalZones} error={error} onDismissError={() => setError(null)} />;
-  }
+  return (
+    <>
+      {/* Photo overlay (rendered at page level, above all wizard steps) */}
+      {photoOverlayEntry && photoOverlayEntry.photoOriginalUrl && (
+        <PhotoOverlay
+          originalUrl={photoOverlayEntry.photoOriginalUrl}
+          onClose={() => setPhotoOverlayEntry(null)}
+          onRetake={handlePhotoRetake}
+          onDelete={() => handlePhotoDelete(photoOverlayEntry.id)}
+        />
+      )}
 
-  if (step === 'zone-tasks' && selectedZone) {
-    return <ZoneTaskList zone={selectedZone} entries={entries} onTaskSelect={handleTaskSelect} onMarkAllOnTrack={handleMarkAllOnTrack} onBack={() => { setStep('select-zone'); setSelectedZone(null); }} saving={saving} error={error} onDismissError={() => setError(null)} />;
-  }
+      {step === 'select-zone' && (
+        <ZoneSelector buildings={buildings} selectedBuilding={selectedBuilding} onBuildingSelect={setSelectedBuilding} floorGroups={floorGroups} getZonesForFloor={getZonesForFloor} checkedZones={checkedZones} onZoneClick={handleZoneClick} entries={entries} onCompleteWalk={completeWalk} showConfirm={showConfirm} onConfirmShow={() => setShowConfirm(true)} onConfirmHide={() => setShowConfirm(false)} totalZones={totalZones} error={error} onDismissError={() => setError(null)} />
+      )}
 
-  if (step === 'toggle-status' && selectedTask) {
-    return <StatusSelector task={selectedTask} onStatusSelect={handleStatusSelect} onBack={() => { if (selectedZone && selectedZone.tasks.length > 1) { setStep('zone-tasks'); } else { setStep('select-zone'); setSelectedZone(null); } setSelectedTask(null); }} saving={saving} error={error} onDismissError={() => setError(null)} />;
-  }
+      {step === 'zone-tasks' && selectedZone && (
+        <ZoneTaskList
+          zone={selectedZone} entries={entries} onTaskSelect={handleTaskSelect}
+          onMarkAllOnTrack={handleMarkAllOnTrack}
+          onBack={() => { setStep('select-zone'); setSelectedZone(null); }}
+          saving={saving} error={error} onDismissError={() => setError(null)}
+          onPhotoUpload={handlePhotoUpload}
+          onPhotoDelete={handlePhotoDelete}
+          onSeverityChange={handleSeverityChange}
+          onPercentChange={handlePercentChange}
+          onNotesChange={handleNotesChange}
+          onShowPhotoOverlay={setPhotoOverlayEntry}
+          photoStates={photoStates}
+          onPhotoRetry={handlePhotoRetry}
+        />
+      )}
 
-  if (step === 'completion-date' && selectedTask) {
-    return <CompletionDate task={selectedTask} completionDate={completionDate} onDateChange={setCompletionDate} notes={notes} onNotesChange={setNotes} onSave={(date) => saveEntry('completed', null, date)} onBack={() => setStep('toggle-status')} saving={saving} error={error} onDismissError={() => setError(null)} />;
-  }
+      {step === 'toggle-status' && selectedTask && (
+        <StatusSelector task={selectedTask} onStatusSelect={handleStatusSelect} onBack={() => { if (selectedZone && selectedZone.tasks.length > 1) { setStep('zone-tasks'); } else { setStep('select-zone'); setSelectedZone(null); } setSelectedTask(null); }} saving={saving} error={error} onDismissError={() => setError(null)} />
+      )}
 
-  if (step === 'log-details' && selectedTask && selectedStatus === 'delayed') {
-    return <DelayDetails task={selectedTask} varianceCode={varianceCode} onVarianceCodeChange={setVarianceCode} delayDays={delayDays} onDelayDaysChange={setDelayDays} notes={notes} onNotesChange={setNotes} onSave={() => { if (varianceCode) saveEntry('delayed', varianceCode); }} onBack={() => setStep('toggle-status')} saving={saving} error={error} onDismissError={() => setError(null)} />;
-  }
+      {step === 'completion-date' && selectedTask && (
+        <CompletionDate task={selectedTask} completionDate={completionDate} onDateChange={setCompletionDate} notes={notes} onNotesChange={setNotes} onSave={(date) => saveEntry('completed', null, date)} onBack={() => setStep('toggle-status')} saving={saving} error={error} onDismissError={() => setError(null)} />
+      )}
 
-  if (step === 'impact-review' && successors.length > 0) {
-    return <ImpactReview successors={successors} selectedSuccessors={selectedSuccessors} daysLate={daysLate} onToggleSuccessor={toggleSuccessor} onSelectAll={() => setSelectedSuccessors(new Set(successors.map((s) => s.id)))} onSelectNone={() => setSelectedSuccessors(new Set())} onPropagate={handlePropagateDelays} onSkip={finishAfterImpact} saving={saving} error={error} onDismissError={() => setError(null)} />;
-  }
+      {step === 'log-details' && selectedTask && selectedStatus === 'delayed' && (
+        <DelayDetails task={selectedTask} varianceCode={varianceCode} onVarianceCodeChange={setVarianceCode} delayDays={delayDays} onDelayDaysChange={setDelayDays} notes={notes} onNotesChange={setNotes} onSave={() => { if (varianceCode) saveEntry('delayed', varianceCode); }} onBack={() => setStep('toggle-status')} saving={saving} error={error} onDismissError={() => setError(null)} />
+      )}
 
-  if (step === 'summary') {
-    return <WalkSummary entries={entries} checkedZones={checkedZones} planId={planId} />;
-  }
+      {step === 'impact-review' && successors.length > 0 && (
+        <ImpactReview successors={successors} selectedSuccessors={selectedSuccessors} daysLate={daysLate} onToggleSuccessor={toggleSuccessor} onSelectAll={() => setSelectedSuccessors(new Set(successors.map((s) => s.id)))} onSelectNone={() => setSelectedSuccessors(new Set())} onPropagate={handlePropagateDelays} onSkip={finishAfterImpact} saving={saving} error={error} onDismissError={() => setError(null)} />
+      )}
 
-  return null;
+      {step === 'summary' && (
+        <WalkSummary entries={entries} checkedZones={checkedZones} planId={planId} />
+      )}
+    </>
+  );
 }

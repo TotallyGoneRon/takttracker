@@ -33,10 +33,23 @@ export interface ZoneInfo {
 }
 
 export interface EntryRecord {
+  id: number;
   task: Task;
   status: string;
   completedDate?: string;
+  severity?: string | null;
+  percentComplete?: number | null;
+  notes?: string | null;
+  photoThumbnailUrl?: string | null;
+  photoOriginalUrl?: string | null;
 }
+
+export const SEVERITY_DOT_COLORS: Record<string, string> = {
+  low: 'bg-yellow-500',
+  medium: 'bg-orange-500',
+  high: 'bg-red-500',
+  critical: 'bg-red-800',
+};
 
 export interface QueuedEntry {
   walkId: number;
