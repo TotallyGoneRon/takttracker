@@ -79,7 +79,13 @@ Plans:
   2. The sync endpoint rejects requests attempting to access paths outside the allowed scope (SSRF fixed)
   3. Import, companies, and scorecard routes use joined queries instead of N+1 patterns
   4. All internal links and fetch calls work correctly at the /tracking basePath without hardcoded path strings
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Validation infrastructure: install Zod, shared helpers, mutation fetcher, delete sync endpoint
+- [ ] 04-02-PLAN.md — Zod validation on 12 simple API routes (parseIntParam + body schemas)
+- [ ] 04-03-PLAN.md — N+1 query fixes + Zod validation on companies, flags, site-walks routes
+- [ ] 04-04-PLAN.md — SWR/apiMutate migration on 6 client pages (zero hardcoded /tracking/)
 
 ## Progress
 
@@ -91,7 +97,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Foundation & Safeguards | 0/3 | Planning complete | - |
 | 2. Scorecard Enhancement | 0/2 | Planning complete | - |
 | 3. Responsive Dashboard & Layout | 0/3 | Planning complete | - |
-| 4. Code Quality & API Hardening | 0/? | Not started | - |
+| 4. Code Quality & API Hardening | 0/4 | Planning complete | - |
 
 ## Backlog
 
