@@ -195,6 +195,8 @@ export const siteWalkEntries = sqliteTable('site_walk_entries', {
   }),
   notes: text('notes'),
   voice_note_url: text('voice_note_url'),
+  severity: text('severity', { enum: ['low', 'medium', 'high', 'critical'] }),
+  percent_complete: integer('percent_complete'),
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
 });
 

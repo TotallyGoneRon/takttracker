@@ -232,5 +232,9 @@ addColumnIfMissing('tasks', 'imported_as_completed', 'INTEGER NOT NULL DEFAULT 0
 addColumnIfMissing('tasks', 'prev_planned_start', 'TEXT');
 addColumnIfMissing('tasks', 'prev_planned_end', 'TEXT');
 
+// --- Phase 5: Photo Capture & Richer Observations ---
+addColumnIfMissing('site_walk_entries', 'severity', 'TEXT');
+addColumnIfMissing('site_walk_entries', 'percent_complete', 'INTEGER');
+
 console.log('Database initialized at:', DB_PATH);
 db.close();
