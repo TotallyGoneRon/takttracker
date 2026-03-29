@@ -27,7 +27,7 @@
 - [x] **UILAY-01**: Responsive layout across all pages — dashboard-rich on desktop, clean/task-focused on mobile
 - [x] **UILAY-02**: Mobile bottom navigation bar for field use (replaces top-nav-only pattern)
 - [x] **UILAY-03**: Dashboard overhaul with Schedule Health Index, key metrics at a glance, and quick actions
-- [ ] **UILAY-04**: Timeline uses virtual scroll or pagination instead of rendering all 200+ tasks
+- [x] **UILAY-04**: Timeline uses virtual scroll or pagination instead of rendering all 200+ tasks
 - [x] **UILAY-05**: Skeleton loading states on all data-dependent pages
 
 ### Code Quality
@@ -87,7 +87,7 @@
 | UILAY-01 | Phase 3 | Complete |
 | UILAY-02 | Phase 3 | Complete |
 | UILAY-03 | Phase 3 | Complete |
-| UILAY-04 | Phase 3 | Pending |
+| UILAY-04 | Phase 3 | Complete |
 | UILAY-05 | Phase 3 | Complete |
 | QUAL-01 | Phase 4 | Pending |
 | QUAL-02 | Phase 4 | Pending |

@@ -67,7 +67,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Health Index calculation library and dashboard overhaul with hero metric, stat cards, top/bottom trades
 - [x] 03-02-PLAN.md — Mobile bottom navigation bar, NavBar slim variant, layout padding for bottom nav
-- [ ] 03-03-PLAN.md — Timeline collapsible building/floor groups and responsive pass on all remaining pages
+- [x] 03-03-PLAN.md — Timeline collapsible building/floor groups and responsive pass on all remaining pages
 
 ### Phase 4: Code Quality & API Hardening
 **Goal**: API routes validate all inputs, known query performance issues are fixed, and no security vulnerabilities remain in production
