@@ -55,7 +55,10 @@ Plans:
   2. Delayed entries in the summary show actionable detail: task name, zone, variance code, delay days, and severity
   3. Summary includes a "Next up" section showing trades scheduled for the next 2-3 days with dates
   4. Summary shows walk-to-walk trend comparison (better/worse/same vs the last walk)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 06-01-PLAN.md — Data layer: extend EntryRecord type, fix saveEntry, summary API endpoint
+- [ ] 06-02-PLAN.md — WalkSummary UI rewrite with company grouping, delayed detail, next-up, trend
 **UI hint**: yes
 
 ### Phase 7: Walk History & Bug Fixes
@@ -82,5 +85,5 @@ Phases execute in numeric order: 5 -> 6 -> 7
 | 3. Responsive Dashboard & Layout | v1.0 | 4/4 | Complete | 2026-03-28 |
 | 4. Code Quality & API Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 5. Photo Capture & Richer Observations | v1.1 | 0/3 | Planned | - |
-| 6. Walk Summary Report | v1.1 | 0/0 | Not started | - |
+| 6. Walk Summary Report | v1.1 | 0/2 | Planned | - |
 | 7. Walk History & Bug Fixes | v1.1 | 0/0 | Not started | - |
