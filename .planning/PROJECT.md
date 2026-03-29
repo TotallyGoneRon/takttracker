@@ -31,13 +31,15 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 - ✓ Mobile bottom navigation bar for field use — Phase 3
 - ✓ Collapsible building/floor timeline groups for 200+ task handling — Phase 3
 - ✓ Responsive design across all 8 pages (desktop + mobile) — Phase 3
+- ✓ Zod input validation on all API routes with structured error responses — Phase 4
+- ✓ N+1 query fixes on companies, flags, and site-walks routes — Phase 4
+- ✓ SSRF-vulnerable sync endpoint removed — Phase 4
+- ✓ All client pages migrated to SWR/apiMutate (zero hardcoded basePath strings) — Phase 4
 
 ### Active
 
 - [ ] Full front-end and feature audit (UX, bugs, code quality, feature gaps)
 - [ ] Scorecard overhaul — task-level detail, trend over time, trade breakdown
-- [ ] Fix security issues (no auth, SSRF in sync, no input validation)
-- [ ] Fix performance bottlenecks (N+1 queries, full table scans, no pagination)
 
 ### Out of Scope
 
@@ -89,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 3 completion*
+*Last updated: 2026-03-29 after Phase 4 completion*
