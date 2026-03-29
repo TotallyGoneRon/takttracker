@@ -42,7 +42,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md` for full details
 **Plans**: 3 plans
 Plans:
 - [x] 05-01-PLAN.md — Schema migration + photo API routes + entry update endpoint
-- [ ] 05-02-PLAN.md — Component extraction of 961-line site-walk monolith
+- [x] 05-02-PLAN.md — Component extraction of 961-line site-walk monolith
 - [ ] 05-03-PLAN.md — Photo capture UI + observation fields + entry card badges
 **UI hint**: yes
 

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Site Walk Overhaul
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-29T15:28:58.413Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-29T15:31:33.755Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 05 (photo-capture-richer-observations) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-29
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 05 P01 | 3min | 3 tasks | 5 files |
+| Phase 05 P02 | 4min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Research]: 961-line site-walk page must be componentized before adding photo/observation state
 - [Research]: Severity and percent complete are visual trackers only — do not affect scoring or scheduling
 - [Phase 05]: Photo URLs stored as filenames only -- API route constructs full path at serve time
+- [Phase 05]: ErrorBanner duplicated per-component for self-containment during extraction
+- [Phase 05]: page.tsx 382 lines (state+handlers) -- JSX extraction achieved 60% reduction from 961
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:28:58.411Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-29T15:31:33.753Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None

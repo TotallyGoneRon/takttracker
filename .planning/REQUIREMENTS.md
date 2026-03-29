@@ -9,7 +9,7 @@ Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
 
 ### Photo Capture
 
-- [ ] **PHOTO-01**: User can tap a camera icon during entry recording to snap a photo from phone's rear camera
+- [x] **PHOTO-01**: User can tap a camera icon during entry recording to snap a photo from phone's rear camera
 - [x] **PHOTO-02**: Uploaded photos are automatically resized to thumbnails for fast display
 - [x] **PHOTO-03**: Photos are stored on local disk and tied to the specific site walk entry
 - [ ] **PHOTO-04**: User can see a photo count badge on entries that have photos attached
@@ -62,7 +62,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PHOTO-01 | Phase 5 | Pending |
+| PHOTO-01 | Phase 5 | Complete |
 | PHOTO-02 | Phase 5 | Complete |
 | PHOTO-03 | Phase 5 | Complete |
 | PHOTO-04 | Phase 5 | Pending |
