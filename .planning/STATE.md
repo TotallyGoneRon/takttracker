@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Site Walk Overhaul
-status: planning
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-03-29T05:05:16.619Z"
-last_activity: 2026-03-28 — Roadmap created for v1.1
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-29T15:28:58.413Z"
+last_activity: 2026-03-29
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Give a construction PM an accurate, at-a-glance picture of schedule health so they can act before problems cascade.
-**Current focus:** v1.1 Site Walk Overhaul — Phase 5 ready to plan
+**Current focus:** Phase 05 — photo-capture-richer-observations
 
 ## Current Position
 
-Phase: 5 of 7 (Photo Capture & Richer Observations)
-Plan: —
-Status: Ready to plan
-Last activity: 2026-03-28 — Roadmap created for v1.1
+Phase: 05 (photo-capture-richer-observations) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-03-29
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable
 
 *Updated after each plan completion*
+| Phase 05 P01 | 3min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Recent decisions affecting current work:
 - [Research]: Photo upload decoupled from entry save — entry saves fast via JSON, photo uploads async after entryId returned
 - [Research]: 961-line site-walk page must be componentized before adding photo/observation state
 - [Research]: Severity and percent complete are visual trackers only — do not affect scoring or scheduling
+- [Phase 05]: Photo URLs stored as filenames only -- API route constructs full path at serve time
 
 ### Pending Todos
 
@@ -80,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T05:05:16.618Z
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: .planning/phases/05-photo-capture-richer-observations/05-UI-SPEC.md
+Last session: 2026-03-29T15:28:58.411Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

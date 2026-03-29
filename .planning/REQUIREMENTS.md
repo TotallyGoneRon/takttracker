@@ -1,105 +1,87 @@
-# Requirements: Takt Flow — Review & Improvement
+# Requirements: Takt Flow Tracking App
 
-**Defined:** 2026-03-27
-**Core Value:** Give a construction PM an accurate, at-a-glance picture of schedule health so they can act before problems cascade.
+**Defined:** 2026-03-28
+**Core Value:** Give a construction PM an accurate, at-a-glance picture of schedule health — which trades are on track, which are falling behind, and what the downstream impact looks like — so they can act before problems cascade.
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Foundation
+Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
 
-- [x] **FOUND-01**: Shared UI component library initialized (shadcn/ui) with consistent status colors across all pages
-- [x] **FOUND-02**: Reusable data fetching hooks replace scattered useState/useEffect/fetch patterns on all client pages
-- [x] **FOUND-03**: Database backup script that snapshots takt-flow.db before any schema change
-- [x] **FOUND-04**: Drizzle migration infrastructure set up with tracked migration history
-- [x] **FOUND-05**: Missing schema tables added (delayWeights, importChangelog) and broken routes fixed
-- [x] **FOUND-06**: Missing task columns added (prev_planned_start, prev_planned_end) via non-destructive migration
+### Photo Capture
 
-### Scorecard
+- [ ] **PHOTO-01**: User can tap a camera icon during entry recording to snap a photo from phone's rear camera
+- [x] **PHOTO-02**: Uploaded photos are automatically resized to thumbnails for fast display
+- [x] **PHOTO-03**: Photos are stored on local disk and tied to the specific site walk entry
+- [ ] **PHOTO-04**: User can see a photo count badge on entries that have photos attached
 
-- [ ] **SCORE-01**: User can click a trade on the scorecard to see task-level detail (which tasks are behind, on track, or ahead)
-- [ ] **SCORE-02**: Scorecard shows performance trend over time via weekly charts (requires snapshot table)
-- [ ] **SCORE-03**: Scorecard displays per-trade breakdown with comparison view (delay days, recovery rate, task completion)
-- [ ] **SCORE-04**: Scorecard shows Percent Plan Complete (PPC) metric calculated from existing site walk data
-- [ ] **SCORE-05**: Scorecard service layer extracted from recovery-engine with filtered queries (no full table scans)
+### Observations
 
-### UI/Layout
+- [x] **OBS-01**: User can mark a delayed entry with severity (Low/Medium/High/Critical) — visual tracker only, does not affect scoring
+- [x] **OBS-02**: User can record percent complete (0/25/50/75/100) on in-progress tasks — visual tracker only, does not affect scheduling
 
-- [x] **UILAY-01**: Responsive layout across all pages — dashboard-rich on desktop, clean/task-focused on mobile
-- [x] **UILAY-02**: Mobile bottom navigation bar for field use (replaces top-nav-only pattern)
-- [x] **UILAY-03**: Dashboard overhaul with Schedule Health Index, key metrics at a glance, and quick actions
-- [x] **UILAY-04**: Timeline uses virtual scroll or pagination instead of rendering all 200+ tasks
-- [x] **UILAY-05**: Skeleton loading states on all data-dependent pages
+### Walk Summary
 
-### Code Quality
+- [ ] **SUM-01**: Walk summary groups entries by company showing which trades are on track vs behind
+- [ ] **SUM-02**: Walk summary shows delayed task details (task name, zone, variance code, delay days, severity)
+- [ ] **SUM-03**: Walk summary shows "Next up" — trades scheduled for the next 2-3 days with dates
+- [ ] **SUM-04**: Walk summary shows walk-to-walk trend (better/worse/same vs last walk)
 
-- [x] **QUAL-01**: Zod schema validation on all API route request bodies
-- [x] **QUAL-02**: Integer parameter parsing validates for NaN on all dynamic routes
-- [x] **QUAL-03**: N+1 query patterns fixed in import, companies, and scorecard routes
-- [x] **QUAL-04**: BasePath references use Next.js helpers instead of hardcoded /tracking/ strings
-- [x] **QUAL-05**: SSRF vulnerability fixed in sync endpoint (path validation)
+### Walk History
 
-## v2 Requirements
+- [ ] **HIST-01**: User can view a list of past walks with summary stats (date, entry counts, status breakdown)
 
-### Advanced Analytics
+### Bug Fixes
 
-- **ANLYT-01**: Cascading delay visualization showing downstream impact tree
-- **ANLYT-02**: PDF export of scorecard and schedule reports for owner meetings
-- **ANLYT-03**: Configurable Schedule Health Index weights (SPI + PPC + compression)
+- [ ] **FIX-01**: Companies page uses active plan ID instead of hardcoded plan ID 1
+- [ ] **FIX-02**: Scorecard "View downstream impact" links to a working destination
+- [ ] **FIX-03**: statusColors.ts shared module is adopted across all pages (remove local color constants)
 
-### Field Features
+## Future Requirements
 
-- **FIELD-01**: Offline/PWA support for site walks without connectivity
-- **FIELD-02**: Photo attachment to site walk entries with thumbnails
-- **FIELD-03**: Constraint checklist completion tracking during site walks
+### Deferred from v1.1
 
-### Platform
-
-- **PLAT-01**: Multi-project support (switch between projects)
-- **PLAT-02**: Authentication layer for shared access
-- **PLAT-03**: Automated daily database backups
+- **PHOTO-05**: Photo markup/annotation — draw arrows, circles, text on photos to highlight issues
+- **VOICE-01**: Voice note recording attached to entries — schema field exists, needs MediaRecorder API
+- **REPORT-01**: Exportable field report as PDF — print-friendly HTML covers 90% of the use case
+- **NOTIFY-01**: Severity-driven notification priority — high-severity delays bubble to dashboard
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Multi-user auth system | Single user for now — revisit when sharing with trades |
-| PostgreSQL migration | SQLite is fine for single-user, no concurrency issues |
-| Mobile native app | Responsive web covers field use adequately |
-| Real-time collaboration | Single user — no need for live sync |
-| Gantt chart view | Takt schedule is zone-based, not activity-based — Gantt doesn't fit |
-| Integration with P6/MS Project | Import from inTakt covers the workflow |
+| Mandatory photo per entry | Breaks three-tap walk speed — photos must always be optional |
+| Offline photo storage with sync | PWA-grade complexity for a single-user app — upload immediately or retry |
+| AI-powered photo analysis | Zero practical value for schedule tracking |
+| Complex form builder for observations | Fixed optional fields (severity, percent) are fast; custom forms are slow |
+| Full gallery/media management | Separate product domain (CompanyCam) — store per entry, display inline, done |
+| Real-time sync/collaboration | Single user — server roundtrip on save is fine |
 
 ## Traceability
 
+Which phases cover which requirements. Updated during roadmap creation.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Complete |
-| FOUND-02 | Phase 1 | Complete |
-| FOUND-03 | Phase 1 | Complete |
-| FOUND-04 | Phase 1 | Complete |
-| FOUND-05 | Phase 1 | Complete |
-| FOUND-06 | Phase 1 | Complete |
-| SCORE-01 | Phase 2 | Pending |
-| SCORE-02 | Phase 2 | Pending |
-| SCORE-03 | Phase 2 | Pending |
-| SCORE-04 | Phase 2 | Pending |
-| SCORE-05 | Phase 2 | Pending |
-| UILAY-01 | Phase 3 | Complete |
-| UILAY-02 | Phase 3 | Complete |
-| UILAY-03 | Phase 3 | Complete |
-| UILAY-04 | Phase 3 | Complete |
-| UILAY-05 | Phase 3 | Complete |
-| QUAL-01 | Phase 4 | Complete |
-| QUAL-02 | Phase 4 | Complete |
-| QUAL-03 | Phase 4 | Complete |
-| QUAL-04 | Phase 4 | Complete |
-| QUAL-05 | Phase 4 | Complete |
+| PHOTO-01 | Phase 5 | Pending |
+| PHOTO-02 | Phase 5 | Complete |
+| PHOTO-03 | Phase 5 | Complete |
+| PHOTO-04 | Phase 5 | Pending |
+| OBS-01 | Phase 5 | Complete |
+| OBS-02 | Phase 5 | Complete |
+| SUM-01 | Phase 6 | Pending |
+| SUM-02 | Phase 6 | Pending |
+| SUM-03 | Phase 6 | Pending |
+| SUM-04 | Phase 6 | Pending |
+| HIST-01 | Phase 7 | Pending |
+| FIX-01 | Phase 7 | Pending |
+| FIX-02 | Phase 7 | Pending |
+| FIX-03 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 21
+- v1.1 requirements: 14 total
+- Mapped to phases: 14
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-27*
-*Last updated: 2026-03-27 after roadmap creation*
+*Requirements defined: 2026-03-28*
+*Last updated: 2026-03-28 after roadmap creation*
