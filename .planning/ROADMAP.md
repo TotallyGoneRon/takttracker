@@ -70,7 +70,10 @@ Plans:
   2. Companies page shows data for the active plan, not hardcoded plan ID 1
   3. Scorecard "View downstream impact" link navigates to a working destination
   4. All pages use the shared statusColors.ts module — no local color constant definitions remain
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — Bug fixes: companies plan ID, scorecard dead link, statusColors cleanup
+- [ ] 07-02-PLAN.md — Walk history page with card-based list and WalkSummary link
 **UI hint**: yes
 
 ## Progress
@@ -86,4 +89,4 @@ Phases execute in numeric order: 5 -> 6 -> 7
 | 4. Code Quality & API Hardening | v1.0 | 4/4 | Complete | 2026-03-29 |
 | 5. Photo Capture & Richer Observations | v1.1 | 0/3 | Planned | - |
 | 6. Walk Summary Report | v1.1 | 0/2 | Planned | - |
-| 7. Walk History & Bug Fixes | v1.1 | 0/0 | Not started | - |
+| 7. Walk History & Bug Fixes | v1.1 | 0/2 | Not started | - |
