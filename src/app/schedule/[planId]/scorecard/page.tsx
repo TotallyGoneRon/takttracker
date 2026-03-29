@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { ChevronUp, ChevronDown, X } from 'lucide-react';
 
+import { STATUS_COLORS } from '@/lib/statusColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -439,10 +440,7 @@ export default function ScorecardPage() {
                 <div key={task.id} className="bg-white rounded-lg border border-gray-100 p-3 min-h-[44px]">
                   <div className="flex items-start gap-2">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
-                      task.status === 'completed' ? 'bg-green-500' :
-                      task.status === 'delayed' ? 'bg-red-500' :
-                      task.status === 'in_progress' ? 'bg-indigo-500' :
-                      'bg-gray-400'
+                      STATUS_COLORS[task.status as keyof typeof STATUS_COLORS]?.dot || 'bg-gray-400'
                     }`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold truncate">{task.taskName}</div>
@@ -467,9 +465,12 @@ export default function ScorecardPage() {
                       {task.delays.length === 0 && (
                         <div className="text-xs text-gray-400 mt-1">No delays recorded for this task.</div>
                       )}
-                      <div className="text-xs text-blue-600 cursor-default opacity-50 mt-1">
+                      <Link
+                        href={`/schedule/${params.planId}`}
+                        className="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block"
+                      >
                         View downstream impact
-                      </div>
+                      </Link>
                     </div>
                   </div>
                 </div>

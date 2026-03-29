@@ -50,12 +50,13 @@ export default function CompaniesPage() {
   // Search
   const [search, setSearch] = useState('');
 
-  // SWR: Load plan to get projectId and planId
-  const { data: planData } = useSWR<{ plan: { id: number; project_id: number } }>(
-    '/api/plans/1?limit=1'
+  // SWR: Load plans to get projectId and planId (use most recent)
+  const { data: plans } = useSWR<Array<{ id: number; project_id: number }>>(
+    '/api/plans'
   );
-  const projectId = planData?.plan?.project_id ?? null;
-  const planId = planData?.plan?.id ?? null;
+  const latestPlan = plans?.sort((a, b) => b.id - a.id)[0] ?? null;
+  const projectId = latestPlan?.project_id ?? null;
+  const planId = latestPlan?.id ?? null;
 
   // SWR: Dependent fetches for companies and activities
   const { data: companies = [], mutate: revalidateCompanies } = useSWR<Company[]>(
@@ -64,7 +65,7 @@ export default function CompaniesPage() {
   const { data: activities = [], mutate: revalidateActivities } = useSWR<Activity[]>(
     planId ? `/api/activities?planId=${planId}` : null
   );
-  const loading = !planData;
+  const loading = !plans;
 
   // Group activities by task_code
   const taskCodeGroups: TaskCodeGroup[] = (() => {
