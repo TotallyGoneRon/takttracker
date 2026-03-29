@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Site Walk Overhaul
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-29T04:58:33.840Z"
+stopped_at: Phase 5 UI-SPEC approved
+last_updated: "2026-03-29T05:05:16.619Z"
 last_activity: 2026-03-28 — Roadmap created for v1.1
 progress:
   total_phases: 3
@@ -80,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T04:58:33.838Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-photo-capture-richer-observations/05-CONTEXT.md
+Last session: 2026-03-29T05:05:16.618Z
+Stopped at: Phase 5 UI-SPEC approved
+Resume file: .planning/phases/05-photo-capture-richer-observations/05-UI-SPEC.md
