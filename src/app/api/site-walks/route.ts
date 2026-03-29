@@ -31,10 +31,19 @@ const completeAction = z.object({
   notes: z.string().optional(),
 }).strip();
 
+const updateEntryAction = z.object({
+  action: z.literal('update_entry'),
+  entryId: positiveInt,
+  severity: z.enum(['low', 'medium', 'high', 'critical']).nullable().optional(),
+  percentComplete: z.number().int().min(0).max(100).nullable().optional(),
+  notes: z.string().nullable().optional(),
+}).strip();
+
 const siteWalkPostSchema = z.discriminatedUnion('action', [
   createAction,
   addEntryAction,
   completeAction,
+  updateEntryAction,
 ]);
 
 // POST /api/site-walks — create, add entry, or complete a site walk
@@ -91,6 +100,20 @@ export async function POST(request: NextRequest) {
           notes: data.notes || null,
         }).where(eq(siteWalks.id, data.walkId));
 
+        return NextResponse.json({ success: true });
+      }
+
+      case 'update_entry': {
+        const updateFields: Record<string, any> = {};
+        if (data.severity !== undefined) updateFields.severity = data.severity;
+        if (data.percentComplete !== undefined) updateFields.percent_complete = data.percentComplete;
+        if (data.notes !== undefined) updateFields.notes = data.notes;
+
+        if (Object.keys(updateFields).length === 0) {
+          return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        }
+
+        await db.update(siteWalkEntries).set(updateFields).where(eq(siteWalkEntries.id, data.entryId));
         return NextResponse.json({ success: true });
       }
     }
