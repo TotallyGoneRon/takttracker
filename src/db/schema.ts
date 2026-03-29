@@ -189,7 +189,7 @@ export const siteWalkEntries = sqliteTable('site_walk_entries', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   site_walk_id: integer('site_walk_id').notNull().references(() => siteWalks.id, { onDelete: 'cascade' }),
   task_id: integer('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
-  status: text('status', { enum: ['on_track', 'delayed', 'recovered'] }).notNull(),
+  status: text('status', { enum: ['on_track', 'delayed', 'recovered', 'completed'] }).notNull(),
   variance_code: text('variance_code', {
     enum: ['labor', 'material', 'prep', 'design', 'weather', 'inspection', 'prerequisite', 'other'],
   }),

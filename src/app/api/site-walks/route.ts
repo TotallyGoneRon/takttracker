@@ -17,12 +17,12 @@ const addEntryAction = z.object({
   action: z.literal('add_entry'),
   walkId: positiveInt,
   taskId: positiveInt,
-  status: z.enum(['on_track', 'delayed', 'recovered']),
-  varianceCode: z.enum(['labor', 'material', 'prep', 'design', 'weather', 'inspection', 'prerequisite', 'other']).optional(),
-  notes: z.string().optional(),
-  voiceNoteUrl: z.string().optional(),
-  delayDays: positiveInt.optional(),
-  conductedBy: z.string().optional(),
+  status: z.enum(['on_track', 'delayed', 'recovered', 'completed']),
+  varianceCode: z.enum(['labor', 'material', 'prep', 'design', 'weather', 'inspection', 'prerequisite', 'other']).nullable().optional(),
+  notes: z.string().nullable().optional(),
+  voiceNoteUrl: z.string().nullable().optional(),
+  delayDays: positiveInt.nullable().optional(),
+  conductedBy: z.string().nullable().optional(),
 }).strip();
 
 const completeAction = z.object({
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
         // Update the task's recovery status
         await db.update(tasks).set({
-          recovery_status: data.status,
+          recovery_status: data.status === 'completed' ? 'on_track' : data.status,
           updated_at: new Date().toISOString(),
         }).where(eq(tasks.id, data.taskId));
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
             data.taskId,
             data.delayDays,
             data.varianceCode || 'other',
-            data.conductedBy
+            data.conductedBy || undefined
           );
         }
 
