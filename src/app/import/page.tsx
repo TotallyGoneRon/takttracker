@@ -151,7 +151,7 @@ export default function ImportPage() {
               )}
             </div>
             <button
-              onClick={() => router.push(`/tracking/schedule/${result.planId}`)}
+              onClick={() => router.push(`/schedule/${result.planId}`)}
               className="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
             >
               View Schedule
