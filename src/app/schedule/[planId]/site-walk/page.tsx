@@ -236,6 +236,8 @@ export default function SiteWalkPage() {
         task: selectedTask,
         status,
         completedDate: completedOn,
+        varianceCode: variance,
+        delayDays: status === 'delayed' ? delayDays : null,
       }]);
       if (selectedTask.zoneName) {
         setCheckedZones((prev) => new Set(prev).add(selectedTask.zoneName!));
@@ -512,7 +514,7 @@ export default function SiteWalkPage() {
       )}
 
       {step === 'summary' && (
-        <WalkSummary entries={entries} checkedZones={checkedZones} planId={planId} />
+        <WalkSummary entries={entries} checkedZones={checkedZones} planId={planId} walkId={walkId} />
       )}
     </>
   );

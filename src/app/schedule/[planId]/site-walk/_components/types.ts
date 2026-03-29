@@ -42,6 +42,8 @@ export interface EntryRecord {
   notes?: string | null;
   photoThumbnailUrl?: string | null;
   photoOriginalUrl?: string | null;
+  varianceCode?: string | null;
+  delayDays?: number | null;
 }
 
 export const SEVERITY_DOT_COLORS: Record<string, string> = {
