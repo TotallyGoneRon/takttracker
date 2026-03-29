@@ -226,14 +226,14 @@ export default function SchedulePage() {
 
   if (error) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-4 md:p-6 text-center">
         <h3 className="text-lg font-semibold text-red-600">Unable to load schedule</h3>
         <p className="text-gray-500 mt-2">{error}</p>
       </div>
     );
   }
 
-  if (!data) return <div className="p-6">Plan not found</div>;
+  if (!data) return <div className="p-4 md:p-6">Plan not found</div>;
 
   return (
     <div className="p-4 md:p-6">

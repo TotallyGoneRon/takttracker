@@ -441,7 +441,7 @@ export default function SiteWalkPage() {
   );
 
   if (loading) {
-    return <div className="p-6 flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" /></div>;
+    return <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]"><div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" /></div>;
   }
 
   // ─── STEP 1: Select Zone ─────────────────────────────────────
@@ -941,7 +941,7 @@ export default function SiteWalkPage() {
     const earlyOrOnTime = entries.filter((e) => e.status === 'completed' && e.completedDate && completionStatus(e.completedDate, e.task.planned_end).days <= 0).length;
 
     return (
-      <div className="p-6 max-w-md mx-auto">
+      <div className="p-4 md:p-6 max-w-md mx-auto">
         <div className="text-center mb-8">
           <div className="text-4xl mb-2">&#10003;</div>
           <h2 className="text-2xl font-bold">Walk Complete</h2>

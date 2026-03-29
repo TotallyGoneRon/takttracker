@@ -169,7 +169,7 @@ export default function ScorecardPage() {
   // --- Error State ---
   if (error) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-4 md:p-6 text-center">
         <Card>
           <CardContent className="p-8">
             <h3 className="text-lg font-bold text-red-600">Unable to load scorecard</h3>

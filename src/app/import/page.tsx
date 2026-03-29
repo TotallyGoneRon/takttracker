@@ -57,7 +57,7 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold mb-2">Import inTakt Schedule</h2>
       <p className="text-gray-600 mb-6">
         Upload the XLSX export from inTakt. The full schedule will be imported and you can filter by week in the app.

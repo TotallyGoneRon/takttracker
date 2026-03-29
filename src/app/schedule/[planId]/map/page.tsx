@@ -109,7 +109,7 @@ export default function MapPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
+      <div className="p-4 md:p-6 flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent" />
       </div>
     );
@@ -117,7 +117,7 @@ export default function MapPage() {
 
   if (error) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-4 md:p-6 text-center">
         <h3 className="text-lg font-semibold text-red-600">Unable to load map</h3>
         <p className="text-gray-500 mt-2">{error}</p>
       </div>
