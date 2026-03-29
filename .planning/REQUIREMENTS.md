@@ -32,11 +32,11 @@
 
 ### Code Quality
 
-- [ ] **QUAL-01**: Zod schema validation on all API route request bodies
-- [ ] **QUAL-02**: Integer parameter parsing validates for NaN on all dynamic routes
+- [x] **QUAL-01**: Zod schema validation on all API route request bodies
+- [x] **QUAL-02**: Integer parameter parsing validates for NaN on all dynamic routes
 - [ ] **QUAL-03**: N+1 query patterns fixed in import, companies, and scorecard routes
-- [ ] **QUAL-04**: BasePath references use Next.js helpers instead of hardcoded /tracking/ strings
-- [ ] **QUAL-05**: SSRF vulnerability fixed in sync endpoint (path validation)
+- [x] **QUAL-04**: BasePath references use Next.js helpers instead of hardcoded /tracking/ strings
+- [x] **QUAL-05**: SSRF vulnerability fixed in sync endpoint (path validation)
 
 ## v2 Requirements
 
@@ -89,11 +89,11 @@
 | UILAY-03 | Phase 3 | Complete |
 | UILAY-04 | Phase 3 | Complete |
 | UILAY-05 | Phase 3 | Complete |
-| QUAL-01 | Phase 4 | Pending |
-| QUAL-02 | Phase 4 | Pending |
+| QUAL-01 | Phase 4 | Complete |
+| QUAL-02 | Phase 4 | Complete |
 | QUAL-03 | Phase 4 | Pending |
-| QUAL-04 | Phase 4 | Pending |
-| QUAL-05 | Phase 4 | Pending |
+| QUAL-04 | Phase 4 | Complete |
+| QUAL-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total
