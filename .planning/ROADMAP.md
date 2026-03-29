@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Database can be backed up with a single command before any schema change
   4. Missing schema tables (delayWeights, importChangelog) exist and their routes return data instead of errors
   5. Adding a new column to an existing table uses a tracked Drizzle migration file, not db:push
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
 - [x] 01-01-PLAN.md — Database backup script, schema sync, migration infrastructure
@@ -61,13 +61,14 @@ Plans:
   2. Mobile users navigate via bottom tab bar instead of top-only navigation
   3. Timeline page handles 200+ tasks without browser lag (virtual scroll or pagination)
   4. Every page renders usably on both a 27-inch monitor and a phone held one-handed in the field
-**Plans:** 3 plans
+**Plans:** 4 plans
 **UI hint**: yes
 
 Plans:
 - [x] 03-01-PLAN.md — Health Index calculation library and dashboard overhaul with hero metric, stat cards, top/bottom trades
 - [x] 03-02-PLAN.md — Mobile bottom navigation bar, NavBar slim variant, layout padding for bottom nav
 - [x] 03-03-PLAN.md — Timeline collapsible building/floor groups and responsive pass on all remaining pages
+- [x] 03-04-PLAN.md — Gap closure: fix mobile hamburger Map link (always-false condition)
 
 ### Phase 4: Code Quality & API Hardening
 **Goal**: API routes validate all inputs, known query performance issues are fixed, and no security vulnerabilities remain in production
