@@ -6,6 +6,7 @@ import { completionStatus } from '@/lib/dates';
 import { apiMutate } from '@/lib/fetcher';
 import { EntryRecord, SEVERITY_DOT_COLORS, VARIANCE_CODES, STATUS_COLORS } from './types';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import Link from 'next/link';
 
 interface WalkSummaryProps {
   entries: EntryRecord[];
@@ -279,6 +280,15 @@ export function WalkSummary({ entries, checkedZones, planId, walkId }: WalkSumma
       <div className="space-y-3 mt-6">
         <button onClick={() => router.push(`/schedule/${planId}`)} className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 min-h-[48px]">View Timeline</button>
         <button onClick={() => router.push(`/schedule/${planId}/scorecard`)} className="w-full py-3 bg-white border border-gray-200 rounded-xl font-medium hover:bg-gray-50 min-h-[48px]">View Scorecard</button>
+      </div>
+
+      <div className="mt-6 text-center">
+        <Link
+          href={`/schedule/${planId}/walk-history`}
+          className="text-sm text-blue-600 hover:text-blue-800 underline"
+        >
+          View past walks
+        </Link>
       </div>
     </div>
   );
