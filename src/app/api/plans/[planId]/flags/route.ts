@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { taktPlans, predictiveFlags, tasks, zones, activities } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { getActiveFlags, dismissFlag } from '@/lib/predictive';
+import { eq, and, inArray } from 'drizzle-orm';
+import { dismissFlag } from '@/lib/predictive';
+import { z } from 'zod';
+import { parseIntParam, validateBody, positiveInt } from '@/lib/validations';
+
+// --- Zod schemas ---
+const dismissFlagSchema = z.object({
+  flagId: positiveInt,
+}).strip();
 
 // GET /api/plans/[planId]/flags — get predictive flags for a plan
 export async function GET(
   request: NextRequest,
   { params }: { params: { planId: string } }
 ) {
-  const planId = parseInt(params.planId);
+  const parsed = parseIntParam(params.planId, 'planId');
+  if ('error' in parsed) return parsed.error;
+  const planId = parsed.value;
 
   const plan = await db.select().from(taktPlans).where(eq(taktPlans.id, planId)).get();
   if (!plan) {
@@ -19,7 +28,7 @@ export async function GET(
   const url = new URL(request.url);
   const includeAll = url.searchParams.get('all') === 'true';
 
-  // Get flags with enriched task details
+  // Get flags with enriched source task details
   const conditions = [eq(predictiveFlags.takt_plan_id, planId)];
   if (!includeAll) {
     conditions.push(eq(predictiveFlags.is_dismissed, false));
@@ -35,12 +44,14 @@ export async function GET(
     .innerJoin(tasks, eq(predictiveFlags.source_task_id, tasks.id))
     .where(and(...conditions));
 
-  // Enrich with flagged task info
-  const enrichedFlags = await Promise.all(
-    flags.map(async (f) => {
-      const flaggedTask = await db
+  // Batch fetch all flagged tasks in one query (per D-11)
+  const flaggedTaskIds = flags.map(f => f.flag.flagged_task_id);
+  const flaggedTasks = flaggedTaskIds.length > 0
+    ? await db
         .select({
-          task: tasks,
+          id: tasks.id,
+          taskName: tasks.task_name,
+          taskStatus: tasks.status,
           zoneName: zones.name,
           zoneFloor: zones.floor_number,
           activityName: activities.name,
@@ -48,21 +59,25 @@ export async function GET(
         .from(tasks)
         .leftJoin(zones, eq(tasks.zone_id, zones.id))
         .leftJoin(activities, eq(tasks.activity_id, activities.id))
-        .where(eq(tasks.id, f.flag.flagged_task_id))
-        .get();
+        .where(inArray(tasks.id, flaggedTaskIds))
+    : [];
 
-      return {
-        ...f.flag,
-        sourceTaskName: f.sourceTaskName,
-        sourceTaskStatus: f.sourceTaskStatus,
-        flaggedTaskName: flaggedTask?.task.task_name || null,
-        flaggedTaskStatus: flaggedTask?.task.status || null,
-        flaggedZoneName: flaggedTask?.zoneName || null,
-        flaggedZoneFloor: flaggedTask?.zoneFloor || null,
-        flaggedActivityName: flaggedTask?.activityName || null,
-      };
-    })
-  );
+  const flaggedTaskMap = new Map(flaggedTasks.map(t => [t.id, t]));
+
+  // Enrich flags from the map (no extra queries)
+  const enrichedFlags = flags.map((f) => {
+    const ft = flaggedTaskMap.get(f.flag.flagged_task_id);
+    return {
+      ...f.flag,
+      sourceTaskName: f.sourceTaskName,
+      sourceTaskStatus: f.sourceTaskStatus,
+      flaggedTaskName: ft?.taskName || null,
+      flaggedTaskStatus: ft?.taskStatus || null,
+      flaggedZoneName: ft?.zoneName || null,
+      flaggedZoneFloor: ft?.zoneFloor || null,
+      flaggedActivityName: ft?.activityName || null,
+    };
+  });
 
   return NextResponse.json({
     planId,
@@ -76,12 +91,13 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { planId: string } }
 ) {
-  const body = await request.json();
-  const flagId = body.flagId;
+  const parsedPlanId = parseIntParam(params.planId, 'planId');
+  if ('error' in parsedPlanId) return parsedPlanId.error;
 
-  if (!flagId) {
-    return NextResponse.json({ error: 'flagId required' }, { status: 400 });
-  }
+  const body = await request.json();
+  const validated = validateBody(dismissFlagSchema, body);
+  if ('error' in validated) return validated.error;
+  const { flagId } = validated.data;
 
   await dismissFlag(flagId);
   return NextResponse.json({ success: true });

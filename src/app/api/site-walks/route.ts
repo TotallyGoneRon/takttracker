@@ -1,78 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { siteWalks, siteWalkEntries, tasks, zones, companies, activities } from '@/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import { propagateDelay } from '@/lib/recovery-engine';
+import { z } from 'zod';
+import { parseIntParam, validateBody, positiveInt } from '@/lib/validations';
 
-// Create a new site walk
+// --- Zod schemas for POST actions (discriminated union per D-06) ---
+const createAction = z.object({
+  action: z.literal('create'),
+  planId: positiveInt,
+  conductedBy: z.string().optional(),
+}).strip();
+
+const addEntryAction = z.object({
+  action: z.literal('add_entry'),
+  walkId: positiveInt,
+  taskId: positiveInt,
+  status: z.enum(['on_track', 'delayed', 'recovered']),
+  varianceCode: z.enum(['labor', 'material', 'prep', 'design', 'weather', 'inspection', 'prerequisite', 'other']).optional(),
+  notes: z.string().optional(),
+  voiceNoteUrl: z.string().optional(),
+  delayDays: positiveInt.optional(),
+  conductedBy: z.string().optional(),
+}).strip();
+
+const completeAction = z.object({
+  action: z.literal('complete'),
+  walkId: positiveInt,
+  notes: z.string().optional(),
+}).strip();
+
+const siteWalkPostSchema = z.discriminatedUnion('action', [
+  createAction,
+  addEntryAction,
+  completeAction,
+]);
+
+// POST /api/site-walks — create, add entry, or complete a site walk
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
+    const validated = validateBody(siteWalkPostSchema, body);
+    if ('error' in validated) return validated.error;
+    const data = validated.data;
 
-  if (body.action === 'create') {
-    const [walk] = await db.insert(siteWalks).values({
-      takt_plan_id: body.planId,
-      walk_date: new Date().toISOString().split('T')[0],
-      conducted_by: body.conductedBy || null,
-      status: 'in_progress',
-    }).returning();
-    return NextResponse.json(walk);
-  }
+    switch (data.action) {
+      case 'create': {
+        const [walk] = await db.insert(siteWalks).values({
+          takt_plan_id: data.planId,
+          walk_date: new Date().toISOString().split('T')[0],
+          conducted_by: data.conductedBy || null,
+          status: 'in_progress',
+        }).returning();
+        return NextResponse.json(walk);
+      }
 
-  if (body.action === 'add_entry') {
-    // Add a site walk entry (the "three-tap" result)
-    const [entry] = await db.insert(siteWalkEntries).values({
-      site_walk_id: body.walkId,
-      task_id: body.taskId,
-      status: body.status, // on_track | delayed | recovered
-      variance_code: body.varianceCode || null,
-      notes: body.notes || null,
-      voice_note_url: body.voiceNoteUrl || null,
-    }).returning();
+      case 'add_entry': {
+        const [entry] = await db.insert(siteWalkEntries).values({
+          site_walk_id: data.walkId,
+          task_id: data.taskId,
+          status: data.status,
+          variance_code: data.varianceCode || null,
+          notes: data.notes || null,
+          voice_note_url: data.voiceNoteUrl || null,
+        }).returning();
 
-    // Update the task's recovery status
-    await db.update(tasks).set({
-      recovery_status: body.status,
-      updated_at: new Date().toISOString(),
-    }).where(eq(tasks.id, body.taskId));
+        // Update the task's recovery status
+        await db.update(tasks).set({
+          recovery_status: data.status,
+          updated_at: new Date().toISOString(),
+        }).where(eq(tasks.id, data.taskId));
 
-    // If delayed, optionally record a delay
-    if (body.status === 'delayed' && body.delayDays) {
-      await propagateDelay(
-        body.taskId,
-        body.delayDays,
-        body.varianceCode || 'other',
-        body.conductedBy
-      );
+        // If delayed, optionally record a delay
+        if (data.status === 'delayed' && data.delayDays) {
+          await propagateDelay(
+            data.taskId,
+            data.delayDays,
+            data.varianceCode || 'other',
+            data.conductedBy
+          );
+        }
+
+        return NextResponse.json(entry);
+      }
+
+      case 'complete': {
+        await db.update(siteWalks).set({
+          status: 'completed',
+          notes: data.notes || null,
+        }).where(eq(siteWalks.id, data.walkId));
+
+        return NextResponse.json({ success: true });
+      }
     }
-
-    return NextResponse.json(entry);
+  } catch (error) {
+    console.error('Error in site-walks POST:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  if (body.action === 'complete') {
-    await db.update(siteWalks).set({
-      status: 'completed',
-      notes: body.notes || null,
-    }).where(eq(siteWalks.id, body.walkId));
-
-    return NextResponse.json({ success: true });
-  }
-
-  return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
-// List site walks for a plan, with task details for each entry
+// GET /api/site-walks — list site walks for a plan with entry details (batch query)
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const planId = url.searchParams.get('planId');
+  const planIdRaw = url.searchParams.get('planId');
   const fromDate = url.searchParams.get('from');
   const toDate = url.searchParams.get('to');
 
-  if (!planId) {
+  if (!planIdRaw) {
     return NextResponse.json({ error: 'planId required' }, { status: 400 });
   }
 
+  const parsed = parseIntParam(planIdRaw, 'planId');
+  if ('error' in parsed) return parsed.error;
+  const planId = parsed.value;
+
   // Build conditions for the walks query
-  const conditions = [eq(siteWalks.takt_plan_id, parseInt(planId))];
+  const conditions = [eq(siteWalks.takt_plan_id, planId)];
 
   if (fromDate) {
     conditions.push(gte(siteWalks.walk_date, fromDate));
@@ -86,10 +130,10 @@ export async function GET(request: NextRequest) {
     .from(siteWalks)
     .where(and(...conditions));
 
-  // Get entries for each walk, joined with task details
-  const walksWithEntries = await Promise.all(
-    walks.map(async (walk) => {
-      const entries = await db
+  // Batch fetch all entries for all walks in one query (per D-12)
+  const walkIds = walks.map(w => w.id);
+  const allEntries = walkIds.length > 0
+    ? await db
         .select({
           entry: siteWalkEntries,
           taskName: tasks.task_name,
@@ -104,21 +148,30 @@ export async function GET(request: NextRequest) {
         .leftJoin(activities, eq(tasks.activity_id, activities.id))
         .leftJoin(zones, eq(tasks.zone_id, zones.id))
         .leftJoin(companies, eq(activities.company_id, companies.id))
-        .where(eq(siteWalkEntries.site_walk_id, walk.id));
+        .where(inArray(siteWalkEntries.site_walk_id, walkIds))
+    : [];
 
-      const enrichedEntries = entries.map((e) => ({
-        ...e.entry,
-        taskName: e.taskName,
-        taskStatus: e.taskStatus,
-        zoneName: e.zoneName,
-        zoneFloor: e.zoneFloor,
-        companyName: e.companyName,
-        companyColor: e.companyColor,
-      }));
+  // Group entries by walk ID in memory
+  const entryMap = new Map<number, typeof allEntries>();
+  for (const row of allEntries) {
+    const walkId = row.entry.site_walk_id;
+    if (!entryMap.has(walkId)) entryMap.set(walkId, []);
+    entryMap.get(walkId)!.push(row);
+  }
 
-      return { ...walk, entries: enrichedEntries };
-    })
-  );
+  // Assemble response
+  const walksWithEntries = walks.map(walk => ({
+    ...walk,
+    entries: (entryMap.get(walk.id) || []).map(e => ({
+      ...e.entry,
+      taskName: e.taskName,
+      taskStatus: e.taskStatus,
+      zoneName: e.zoneName,
+      zoneFloor: e.zoneFloor,
+      companyName: e.companyName,
+      companyColor: e.companyColor,
+    })),
+  }));
 
   return NextResponse.json(walksWithEntries);
 }
