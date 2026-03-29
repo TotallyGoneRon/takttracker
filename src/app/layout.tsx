@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { NavBar } from './NavBar';
 import { Providers } from './providers';
+import { BottomNav } from '@/components/BottomNav';
 
 export const metadata: Metadata = {
   title: 'Takt-Flow Recovery System',
@@ -28,8 +29,9 @@ export default function RootLayout({
         <div className="min-h-screen flex flex-col">
           <NavBar />
           <Providers>
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pb-20 md:pb-0">{children}</main>
           </Providers>
+          <BottomNav />
         </div>
       </body>
     </html>
