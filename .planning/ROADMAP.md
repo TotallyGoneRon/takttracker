@@ -58,7 +58,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 06-01-PLAN.md — Data layer: extend EntryRecord type, fix saveEntry, summary API endpoint
-- [ ] 06-02-PLAN.md — WalkSummary UI rewrite with company grouping, delayed detail, next-up, trend
+- [x] 06-02-PLAN.md — WalkSummary UI rewrite with company grouping, delayed detail, next-up, trend
 **UI hint**: yes
 
 ### Phase 7: Walk History & Bug Fixes
