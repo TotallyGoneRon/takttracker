@@ -34,7 +34,7 @@
 
 - [x] **QUAL-01**: Zod schema validation on all API route request bodies
 - [x] **QUAL-02**: Integer parameter parsing validates for NaN on all dynamic routes
-- [ ] **QUAL-03**: N+1 query patterns fixed in import, companies, and scorecard routes
+- [x] **QUAL-03**: N+1 query patterns fixed in import, companies, and scorecard routes
 - [x] **QUAL-04**: BasePath references use Next.js helpers instead of hardcoded /tracking/ strings
 - [x] **QUAL-05**: SSRF vulnerability fixed in sync endpoint (path validation)
 
@@ -91,7 +91,7 @@
 | UILAY-05 | Phase 3 | Complete |
 | QUAL-01 | Phase 4 | Complete |
 | QUAL-02 | Phase 4 | Complete |
-| QUAL-03 | Phase 4 | Pending |
+| QUAL-03 | Phase 4 | Complete |
 | QUAL-04 | Phase 4 | Complete |
 | QUAL-05 | Phase 4 | Complete |
 
