@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getScorecardData } from '@/lib/scorecard-service';
+import { z } from 'zod';
+import { parseIntParam, validateBody, positiveInt } from '@/lib/validations';
+
+const scorecardQuerySchema = z.object({
+  planId: positiveInt,
+  buildingId: positiveInt.optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const planId = url.searchParams.get('planId');
-    const buildingId = url.searchParams.get('buildingId');
-
-    if (!planId) {
-      return NextResponse.json({ error: 'planId required' }, { status: 400 });
-    }
+    const validated = validateBody(scorecardQuerySchema, Object.fromEntries(url.searchParams));
+    if ('error' in validated) return validated.error;
+    const { planId, buildingId } = validated.data;
 
     const scorecard = await getScorecardData(
-      parseInt(planId),
-      buildingId ? parseInt(buildingId) : undefined,
+      planId,
+      buildingId,
     );
     return NextResponse.json(scorecard);
   } catch (err) {

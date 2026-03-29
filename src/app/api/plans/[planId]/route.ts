@@ -5,12 +5,25 @@ import {
   taskRelationships, siteWalkEntries, siteWalks, predictiveFlags,
 } from '@/db/schema';
 import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
+import { z } from 'zod';
+import { parseIntParam, validateBody } from '@/lib/validations';
+
+const planQuerySchema = z.object({
+  start: z.string().optional(),
+  end: z.string().optional(),
+  status: z.string().optional(),
+  building: z.string().optional(),
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().nonnegative().optional(),
+});
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { planId: string } }
 ) {
-  const planId = parseInt(params.planId);
+  const parsed = parseIntParam(params.planId, 'planId');
+  if ('error' in parsed) return parsed.error;
+  const planId = parsed.value;
 
   const plan = await db.select().from(taktPlans).where(eq(taktPlans.id, planId)).get();
   if (!plan) {
@@ -19,12 +32,11 @@ export async function GET(
 
   // Get filter params
   const url = new URL(request.url);
-  const startFilter = url.searchParams.get('start');
-  const endFilter = url.searchParams.get('end');
-  const statusFilter = url.searchParams.get('status');
-  const buildingFilter = url.searchParams.get('building');
-  const page = parseInt(url.searchParams.get('page') || '1');
-  const rawLimit = parseInt(url.searchParams.get('limit') || '200');
+  const validated = validateBody(planQuerySchema, Object.fromEntries(url.searchParams));
+  if ('error' in validated) return validated.error;
+  const { start: startFilter, end: endFilter, status: statusFilter, building: buildingFilter } = validated.data;
+  const page = validated.data.page ?? 1;
+  const rawLimit = validated.data.limit ?? 200;
   const noLimit = rawLimit === 0; // limit=0 means no limit (for map view)
   const limit = noLimit ? 99999 : Math.min(rawLimit, 10000);
   const offset = (page - 1) * limit;
@@ -43,8 +55,9 @@ export async function GET(
   }
 
   if (buildingFilter) {
-    const buildingId = parseInt(buildingFilter);
-    conditions.push(eq(zones.building_id, buildingId));
+    const bldgParsed = parseIntParam(buildingFilter, 'building');
+    if ('error' in bldgParsed) return bldgParsed.error;
+    conditions.push(eq(zones.building_id, bldgParsed.value));
   }
 
   const whereClause = and(...conditions);
@@ -146,7 +159,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { planId: string } }
 ) {
-  const planId = parseInt(params.planId);
+  const parsed = parseIntParam(params.planId, 'planId');
+  if ('error' in parsed) return parsed.error;
+  const planId = parsed.value;
 
   const plan = await db.select().from(taktPlans).where(eq(taktPlans.id, planId)).get();
   if (!plan) {

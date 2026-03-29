@@ -2,13 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { tasks, taskRelationships, activities, zones, companies } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { parseIntParam, validateBody } from '@/lib/validations';
+
+const successorQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().optional(),
+});
+
+const propagateSchema = z.object({
+  daysLate: z.number().int().positive(),
+  selectedSuccessorIds: z.array(z.number().int().positive()).min(1),
+  createdBy: z.string().optional(),
+}).strip();
 
 // Get successor tasks that would be impacted by a late completion
 export async function GET(
   request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const taskId = parseInt(params.taskId);
+  const parsed = parseIntParam(params.taskId, 'taskId');
+  if ('error' in parsed) return parsed.error;
+  const taskId = parsed.value;
 
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task) {
@@ -18,7 +32,10 @@ export async function GET(
   // Find the next N upcoming trades in the SAME ZONE, sorted by planned_start.
   // This walks the takt sequence — not just direct relationship links — to show
   // the next 4 trades that will work in this zone after the delayed task.
-  const MAX_TRADES = parseInt(new URL(request.url).searchParams.get('limit') || '4');
+  const url = new URL(request.url);
+  const qValidated = validateBody(successorQuerySchema, Object.fromEntries(url.searchParams));
+  if ('error' in qValidated) return qValidated.error;
+  const MAX_TRADES = qValidated.data.limit ?? 4;
 
   // Get all non-completed tasks in the same zone, sorted by planned_start
   const sameZoneTasks = task.zone_id
@@ -84,16 +101,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const taskId = parseInt(params.taskId);
+  const parsedId = parseIntParam(params.taskId, 'taskId');
+  if ('error' in parsedId) return parsedId.error;
+  const taskId = parsedId.value;
   const body = await request.json();
-  const { daysLate, selectedSuccessorIds } = body as {
-    daysLate: number;
-    selectedSuccessorIds: number[];
-  };
-
-  if (!daysLate || daysLate <= 0 || !selectedSuccessorIds?.length) {
-    return NextResponse.json({ error: 'daysLate and selectedSuccessorIds required' }, { status: 400 });
-  }
+  const validated = validateBody(propagateSchema, body);
+  if ('error' in validated) return validated.error;
+  const { daysLate, selectedSuccessorIds } = validated.data;
 
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task) {
@@ -110,7 +124,7 @@ export async function POST(
     delay_type: 'assigned',
     reason: 'other',
     notes: `Completed ${daysLate}d late`,
-    created_by: body.createdBy || null,
+    created_by: validated.data.createdBy || null,
   });
 
   const updated = [];
@@ -126,7 +140,7 @@ export async function POST(
       reason: 'prerequisite',
       source_task_id: taskId,
       notes: `Inherited ${daysLate}d delay from late completion of "${task.task_name}"`,
-      created_by: body.createdBy || null,
+      created_by: validated.data.createdBy || null,
     });
 
     // Shift the successor's planned end date

@@ -3,14 +3,36 @@ import { db } from '@/db/client';
 import { tasks, taskDelays } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { calculateRecovery, propagateDelay } from '@/lib/recovery-engine';
+import { z } from 'zod';
+import { parseIntParam, validateBody } from '@/lib/validations';
+
+const taskUpdateSchema = z.object({
+  status: z.string().optional(),
+  actual_start: z.string().nullable().optional(),
+  actual_end: z.string().nullable().optional(),
+  recovery_status: z.string().optional(),
+  delay_days: z.number().int().nonnegative().optional(),
+  inherited_delay_days: z.number().int().nonnegative().optional(),
+  recovery_points: z.number().int().nonnegative().optional(),
+  notes: z.string().optional(),
+  delay: z.object({
+    days: z.number().int().positive(),
+    reason: z.string(),
+    created_by: z.string().optional(),
+  }).optional(),
+}).strip();
 
 // Update a task (status change, delay recording, etc.)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const taskId = parseInt(params.taskId);
+  const parsed = parseIntParam(params.taskId, 'taskId');
+  if ('error' in parsed) return parsed.error;
+  const taskId = parsed.value;
   const body = await request.json();
+  const validated = validateBody(taskUpdateSchema, body);
+  if ('error' in validated) return validated.error;
 
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task) {
@@ -94,7 +116,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
-  const taskId = parseInt(params.taskId);
+  const parsed = parseIntParam(params.taskId, 'taskId');
+  if ('error' in parsed) return parsed.error;
+  const taskId = parsed.value;
 
   const task = await db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task) {

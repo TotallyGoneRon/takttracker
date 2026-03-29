@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { importChangelog, importLogs } from '@/db/schema';
 import { eq, desc } from 'drizzle-orm';
+import { parseIntParam } from '@/lib/validations';
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -9,10 +10,12 @@ export async function GET(request: NextRequest) {
   const planId = url.searchParams.get('planId');
 
   if (importLogId) {
+    const parsed = parseIntParam(importLogId, 'importLogId');
+    if ('error' in parsed) return parsed.error;
     const changes = await db
       .select()
       .from(importChangelog)
-      .where(eq(importChangelog.import_log_id, parseInt(importLogId)));
+      .where(eq(importChangelog.import_log_id, parsed.value));
     return NextResponse.json(changes);
   }
 
