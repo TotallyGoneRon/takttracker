@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { apiMutate } from '@/lib/fetcher';
 
 interface Company {
   id: number;
@@ -31,12 +33,7 @@ interface TaskCodeGroup {
 }
 
 export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [projectId, setProjectId] = useState<number | null>(null);
-  const [planId, setPlanId] = useState<number | null>(null);
   const [tab, setTab] = useState<'codes' | 'companies'>('codes');
 
   // New company form
@@ -53,29 +50,21 @@ export default function CompaniesPage() {
   // Search
   const [search, setSearch] = useState('');
 
-  useEffect(() => { loadData(); }, []);
+  // SWR: Load plan to get projectId and planId
+  const { data: planData } = useSWR<{ plan: { id: number; project_id: number } }>(
+    '/api/plans/1?limit=1'
+  );
+  const projectId = planData?.plan?.project_id ?? null;
+  const planId = planData?.plan?.id ?? null;
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const planRes = await fetch('/tracking/api/plans/1?limit=1');
-      if (!planRes.ok) throw new Error('No plan found');
-      const planData = await planRes.json();
-      setProjectId(planData.plan.project_id);
-      setPlanId(planData.plan.id);
-
-      const [compRes, actRes] = await Promise.all([
-        fetch(`/tracking/api/companies?projectId=${planData.plan.project_id}`),
-        fetch(`/tracking/api/activities?planId=${planData.plan.id}`),
-      ]);
-      if (compRes.ok) setCompanies(await compRes.json());
-      if (actRes.ok) setActivities(await actRes.json());
-    } catch {
-      setError('Failed to load. Import a schedule first.');
-    } finally {
-      setLoading(false);
-    }
-  }
+  // SWR: Dependent fetches for companies and activities
+  const { data: companies = [], mutate: revalidateCompanies } = useSWR<Company[]>(
+    projectId ? `/api/companies?projectId=${projectId}` : null
+  );
+  const { data: activities = [], mutate: revalidateActivities } = useSWR<Activity[]>(
+    planId ? `/api/activities?planId=${planId}` : null
+  );
+  const loading = !planData;
 
   // Group activities by task_code
   const taskCodeGroups: TaskCodeGroup[] = (() => {
@@ -128,16 +117,13 @@ export default function CompaniesPage() {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch('/tracking/api/companies', {
+      await apiMutate('/api/companies', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName.trim(), color: newColor.replace('#', ''), project_id: projectId }),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed');
       setNewName('');
       setShowForm(false);
-      const compRes = await fetch(`/tracking/api/companies?projectId=${projectId}`);
-      if (compRes.ok) setCompanies(await compRes.json());
+      revalidateCompanies();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create');
     } finally {
@@ -147,14 +133,12 @@ export default function CompaniesPage() {
 
   async function handleUpdate(id: number) {
     try {
-      await fetch(`/tracking/api/companies/${id}`, {
+      await apiMutate(`/api/companies/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: editName, color: editColor.replace('#', '') }),
       });
       setEditingId(null);
-      const compRes = await fetch(`/tracking/api/companies?projectId=${projectId}`);
-      if (compRes.ok) setCompanies(await compRes.json());
+      revalidateCompanies();
     } catch {
       setError('Failed to update');
     }
@@ -165,19 +149,14 @@ export default function CompaniesPage() {
     try {
       // Reassign ALL activities with this task code
       for (const actId of group.activityIds) {
-        await fetch(`/tracking/api/activities/${actId}/company`, {
+        await apiMutate(`/api/activities/${actId}/company`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ company_id: newCompanyId }),
         });
       }
       // Refresh
-      const [compRes, actRes] = await Promise.all([
-        fetch(`/tracking/api/companies?projectId=${projectId}`),
-        fetch(`/tracking/api/activities?planId=${planId}`),
-      ]);
-      if (compRes.ok) setCompanies(await compRes.json());
-      if (actRes.ok) setActivities(await actRes.json());
+      revalidateCompanies();
+      revalidateActivities();
     } catch {
       setError('Failed to reassign');
     }

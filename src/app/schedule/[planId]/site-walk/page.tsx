@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { apiMutate } from '@/lib/fetcher';
 
 interface Task {
   id: number;
@@ -153,13 +154,10 @@ export default function SiteWalkPage() {
   const ensureWalk = useCallback(async (): Promise<number | null> => {
     if (walkId) return walkId;
     try {
-      const res = await fetch('/tracking/api/site-walks', {
+      const walk = await apiMutate('/api/site-walks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'create', planId: parseInt(planId) }),
       });
-      if (!res.ok) throw new Error('Failed to create walk');
-      const walk = await res.json();
       setWalkId(walk.id);
       return walk.id;
     } catch {
@@ -174,12 +172,10 @@ export default function SiteWalkPage() {
     const stillFailed: QueuedEntry[] = [];
     for (const entry of queued) {
       try {
-        const res = await fetch('/tracking/api/site-walks', {
+        await apiMutate('/api/site-walks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'add_entry', ...entry }),
         });
-        if (!res.ok) stillFailed.push(entry);
       } catch { stillFailed.push(entry); }
     }
     setQueuedEntries(stillFailed);
@@ -197,9 +193,7 @@ export default function SiteWalkPage() {
           end: endDate.toISOString().split('T')[0],
           limit: '0',
         });
-        const res = await fetch(`/tracking/api/plans/${planId}?${p}`);
-        if (!res.ok) throw new Error('Failed to load tasks');
-        const data = await res.json();
+        const data = await apiMutate(`/api/plans/${planId}?${p}`, { method: 'GET' });
         setTasks(data.tasks);
         setBuildings(data.buildings);
         if (data.buildings.length > 0) setSelectedBuilding(data.buildings[0].id);
@@ -286,9 +280,8 @@ export default function SiteWalkPage() {
       if (!currentWalkId) { setSaving(false); return; }
 
       // Save site walk entry
-      const res = await fetch('/tracking/api/site-walks', {
+      await apiMutate('/api/site-walks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'add_entry',
           walkId: currentWalkId,
@@ -299,13 +292,11 @@ export default function SiteWalkPage() {
           delayDays: status === 'delayed' ? delayDays : null,
         }),
       });
-      if (!res.ok) throw new Error('Save failed');
 
       // If completed, also update the task via the task API
       if (status === 'completed' && completedOn) {
-        await fetch(`/tracking/api/tasks/${selectedTask.id}`, {
+        await apiMutate(`/api/tasks/${selectedTask.id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             status: 'completed',
             actual_end: completedOn,
@@ -325,19 +316,16 @@ export default function SiteWalkPage() {
         if (late.days > 0) {
           // Fetch successor tasks
           try {
-            const succRes = await fetch(`/tracking/api/tasks/${selectedTask.id}/successors`);
-            if (succRes.ok) {
-              const succs: SuccessorTask[] = await succRes.json();
-              if (succs.length > 0) {
-                setSuccessors(succs);
-                // Pre-select direct successors (next trade), others shown but unchecked
-                setSelectedSuccessors(new Set(succs.filter((s) => s.isDirectSuccessor).map((s) => s.id)));
-                setDaysLate(late.days);
-                setLastCompletedTaskId(selectedTask.id);
-                setSaving(false);
-                setStep('impact-review');
-                return; // Don't navigate away — show impact review
-              }
+            const succs: SuccessorTask[] = await apiMutate(`/api/tasks/${selectedTask.id}/successors`, { method: 'GET' });
+            if (succs.length > 0) {
+              setSuccessors(succs);
+              // Pre-select direct successors (next trade), others shown but unchecked
+              setSelectedSuccessors(new Set(succs.filter((s) => s.isDirectSuccessor).map((s) => s.id)));
+              setDaysLate(late.days);
+              setLastCompletedTaskId(selectedTask.id);
+              setSaving(false);
+              setStep('impact-review');
+              return; // Don't navigate away — show impact review
             }
           } catch {
             // If fetching successors fails, just continue normally
@@ -383,12 +371,10 @@ export default function SiteWalkPage() {
       const cw = await ensureWalk();
       if (!cw) { setSaving(false); return; }
       for (const task of unchecked) {
-        const res = await fetch('/tracking/api/site-walks', {
+        await apiMutate('/api/site-walks', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'add_entry', walkId: cw, taskId: task.id, status: 'on_track', varianceCode: null, notes: null, delayDays: null }),
         });
-        if (!res.ok) throw new Error('Save failed');
         setEntries((prev) => [...prev, { task, status: 'on_track' }]);
         if (task.zoneName) setCheckedZones((prev) => new Set(prev).add(task.zoneName!));
       }
@@ -405,12 +391,10 @@ export default function SiteWalkPage() {
     if (!walkId) return;
     setShowConfirm(false);
     try {
-      const res = await fetch('/tracking/api/site-walks', {
+      await apiMutate('/api/site-walks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'complete', walkId }),
       });
-      if (!res.ok) throw new Error('Failed');
       setStep('summary');
     } catch {
       setError('Failed to complete walk. Check connection.');
@@ -785,15 +769,13 @@ export default function SiteWalkPage() {
       setSaving(true);
       setError(null);
       try {
-        const res = await fetch(`/tracking/api/tasks/${lastCompletedTaskId}/successors`, {
+        await apiMutate(`/api/tasks/${lastCompletedTaskId}/successors`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             daysLate,
             selectedSuccessorIds: Array.from(selectedSuccessors),
           }),
         });
-        if (!res.ok) throw new Error('Failed to propagate');
         finishAfterImpact();
       } catch {
         setError('Failed to propagate delays. Try again.');
