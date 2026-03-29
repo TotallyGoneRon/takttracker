@@ -72,7 +72,7 @@ Plans:
   4. All pages use the shared statusColors.ts module — no local color constant definitions remain
 **Plans**: 2 plans
 Plans:
-- [ ] 07-01-PLAN.md — Bug fixes: companies plan ID, scorecard dead link, statusColors cleanup
+- [x] 07-01-PLAN.md — Bug fixes: companies plan ID, scorecard dead link, statusColors cleanup
 - [x] 07-02-PLAN.md — Walk history page with card-based list and WalkSummary link
 **UI hint**: yes
 

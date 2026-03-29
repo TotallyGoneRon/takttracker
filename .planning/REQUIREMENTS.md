@@ -32,9 +32,9 @@ Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
 
 ### Bug Fixes
 
-- [ ] **FIX-01**: Companies page uses active plan ID instead of hardcoded plan ID 1
-- [ ] **FIX-02**: Scorecard "View downstream impact" links to a working destination
-- [ ] **FIX-03**: statusColors.ts shared module is adopted across all pages (remove local color constants)
+- [x] **FIX-01**: Companies page uses active plan ID instead of hardcoded plan ID 1
+- [x] **FIX-02**: Scorecard "View downstream impact" links to a working destination
+- [x] **FIX-03**: statusColors.ts shared module is adopted across all pages (remove local color constants)
 
 ## Future Requirements
 
@@ -73,9 +73,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUM-03 | Phase 6 | Complete |
 | SUM-04 | Phase 6 | Complete |
 | HIST-01 | Phase 7 | Complete |
-| FIX-01 | Phase 7 | Pending |
-| FIX-02 | Phase 7 | Pending |
-| FIX-03 | Phase 7 | Pending |
+| FIX-01 | Phase 7 | Complete |
+| FIX-02 | Phase 7 | Complete |
+| FIX-03 | Phase 7 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 14 total
