@@ -10,6 +10,8 @@ import {
   type ParsedActivity, type DetectedZone, type DetectedBuilding,
 } from '@/lib/import-parser';
 
+// Note: Zod body validation is not applicable to FormData uploads.
+// File presence is validated manually below (formData.get('file')).
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

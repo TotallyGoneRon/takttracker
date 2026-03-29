@@ -2,14 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { companies } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
+import { parseIntParam, validateBody } from '@/lib/validations';
+
+const companyUpdateSchema = z.object({
+  name: z.string().min(1).optional(),
+  color: z.string().nullable().optional(),
+}).strip();
 
 // PATCH /api/companies/[id] — update company name/color
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = parseInt(params.id);
+  const parsed = parseIntParam(params.id, 'id');
+  if ('error' in parsed) return parsed.error;
+  const id = parsed.value;
   const body = await request.json();
+  const validated = validateBody(companyUpdateSchema, body);
+  if ('error' in validated) return validated.error;
 
   const company = await db.select().from(companies).where(eq(companies.id, id)).get();
   if (!company) {

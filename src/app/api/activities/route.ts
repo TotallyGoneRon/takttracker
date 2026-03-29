@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { activities, companies, tasks } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { parseIntParam } from '@/lib/validations';
 
 // GET /api/activities?planId=X — list all activities for a plan with company info
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const planId = url.searchParams.get('planId');
+  const planIdRaw = url.searchParams.get('planId');
 
-  if (!planId) {
+  if (!planIdRaw) {
     return NextResponse.json({ error: 'planId required' }, { status: 400 });
   }
+
+  const parsed = parseIntParam(planIdRaw, 'planId');
+  if ('error' in parsed) return parsed.error;
+  const planId = parsed.value;
 
   const rows = await db
     .select({
@@ -28,7 +33,7 @@ export async function GET(request: NextRequest) {
     })
     .from(activities)
     .leftJoin(companies, eq(activities.company_id, companies.id))
-    .where(eq(activities.takt_plan_id, parseInt(planId)));
+    .where(eq(activities.takt_plan_id, planId));
 
   const result = rows.map((r) => ({
     id: r.id,

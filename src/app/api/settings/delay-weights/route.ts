@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { delayWeights } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { z } from 'zod';
+import { parseIntParam, validateBody, positiveInt } from '@/lib/validations';
 
 const DEFAULT_WEIGHTS: Record<string, { weight: number; impacts_score: boolean; description: string }> = {
   weather: { weight: 0.0, impacts_score: false, description: 'Not the trade\'s fault' },
@@ -17,13 +19,15 @@ const DEFAULT_WEIGHTS: Record<string, { weight: number; impacts_score: boolean; 
 // GET /api/settings/delay-weights?projectId=X
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const projectId = url.searchParams.get('projectId');
+  const projectIdRaw = url.searchParams.get('projectId');
 
-  if (!projectId) {
+  if (!projectIdRaw) {
     return NextResponse.json({ error: 'projectId required' }, { status: 400 });
   }
 
-  const pid = parseInt(projectId);
+  const parsed = parseIntParam(projectIdRaw, 'projectId');
+  if ('error' in parsed) return parsed.error;
+  const pid = parsed.value;
   let weights = await db
     .select()
     .from(delayWeights)
@@ -50,22 +54,22 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(weights);
 }
 
+const delayWeightUpdateSchema = z.object({
+  projectId: positiveInt,
+  weights: z.array(z.object({
+    reason: z.string().min(1),
+    weight: z.number().min(0).max(2),
+    impacts_score: z.boolean(),
+  })).min(1),
+  cascadingMultiplier: z.number().min(0).optional(),
+}).strip();
+
 // PUT /api/settings/delay-weights — update weights
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  const { projectId, weights, cascadingMultiplier } = body as {
-    projectId: number;
-    weights: Array<{
-      reason: string;
-      weight: number;
-      impacts_score: boolean;
-    }>;
-    cascadingMultiplier?: number;
-  };
-
-  if (!projectId || !weights) {
-    return NextResponse.json({ error: 'projectId and weights required' }, { status: 400 });
-  }
+  const validated = validateBody(delayWeightUpdateSchema, body);
+  if ('error' in validated) return validated.error;
+  const { projectId, weights, cascadingMultiplier } = validated.data;
 
   for (const w of weights) {
     const existing = await db
