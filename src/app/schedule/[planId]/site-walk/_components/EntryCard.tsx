@@ -13,21 +13,31 @@ interface EntryCardProps {
 export function EntryCard({ entry, isExpanded, onToggleExpand, children }: EntryCardProps) {
   const statusColor = STATUS_COLORS[entry.status];
   const statusBg = statusColor?.bg || 'bg-gray-400';
+  const borderColor = entry.status === 'delayed' ? 'border-red-300 bg-red-50/30'
+    : entry.status === 'completed' ? 'border-emerald-300 bg-emerald-50/30'
+    : 'border-green-300 bg-green-50/30';
 
   return (
-    <div className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden">
+    <div className={`rounded-xl border-2 ${borderColor} overflow-hidden`}>
       {/* Collapsed row */}
       <button
         onClick={onToggleExpand}
         className="w-full p-4 text-left flex items-center gap-3 min-h-[48px]"
       >
-        {/* Status dot */}
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusBg}`} />
+        {/* Status badge */}
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+          entry.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+          entry.status === 'on_track' ? 'bg-green-100 text-green-700' :
+          entry.status === 'delayed' ? 'bg-red-100 text-red-700' :
+          'bg-blue-100 text-blue-700'
+        }`}>
+          {entry.status === 'completed' ? 'Done' : entry.status === 'on_track' ? 'On Track' : entry.status.replace('_', ' ')}
+        </span>
 
-        {/* Task name + zone */}
+        {/* Task name + company */}
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm truncate">{entry.task.task_name}</div>
-          <div className="text-xs text-gray-500 truncate">{entry.task.zoneName || 'Unknown zone'}</div>
+          <div className="text-xs text-gray-500 truncate">{entry.task.company?.name || 'Unassigned'}</div>
         </div>
 
         {/* Badge row */}
