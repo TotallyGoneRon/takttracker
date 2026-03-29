@@ -65,8 +65,8 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 03-01-PLAN.md — Health Index calculation library and dashboard overhaul with hero metric, stat cards, top/bottom trades
-- [ ] 03-02-PLAN.md — Mobile bottom navigation bar, NavBar slim variant, layout padding for bottom nav
+- [x] 03-01-PLAN.md — Health Index calculation library and dashboard overhaul with hero metric, stat cards, top/bottom trades
+- [x] 03-02-PLAN.md — Mobile bottom navigation bar, NavBar slim variant, layout padding for bottom nav
 - [ ] 03-03-PLAN.md — Timeline collapsible building/floor groups and responsive pass on all remaining pages
 
 ### Phase 4: Code Quality & API Hardening
