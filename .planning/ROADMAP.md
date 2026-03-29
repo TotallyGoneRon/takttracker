@@ -84,7 +84,7 @@ Plans:
 - [x] 04-01-PLAN.md -- Zod install, shared validation helpers (parseIntParam, validateBody), apiMutate fetcher, sync endpoint removal
 - [x] 04-02-PLAN.md -- API route validation hardening with Zod schemas
 - [x] 04-03-PLAN.md -- N+1 query fixes and performance optimization
-- [ ] 04-04-PLAN.md -- BasePath cleanup and remaining code quality fixes
+- [x] 04-04-PLAN.md -- BasePath cleanup and remaining code quality fixes
 
 ## Progress
 
