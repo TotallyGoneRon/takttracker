@@ -57,7 +57,7 @@ Plans:
   4. Summary shows walk-to-walk trend comparison (better/worse/same vs the last walk)
 **Plans**: 2 plans
 Plans:
-- [ ] 06-01-PLAN.md — Data layer: extend EntryRecord type, fix saveEntry, summary API endpoint
+- [x] 06-01-PLAN.md — Data layer: extend EntryRecord type, fix saveEntry, summary API endpoint
 - [ ] 06-02-PLAN.md — WalkSummary UI rewrite with company grouping, delayed detail, next-up, trend
 **UI hint**: yes
 

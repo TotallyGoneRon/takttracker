@@ -21,10 +21,10 @@ Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
 
 ### Walk Summary
 
-- [ ] **SUM-01**: Walk summary groups entries by company showing which trades are on track vs behind
-- [ ] **SUM-02**: Walk summary shows delayed task details (task name, zone, variance code, delay days, severity)
-- [ ] **SUM-03**: Walk summary shows "Next up" — trades scheduled for the next 2-3 days with dates
-- [ ] **SUM-04**: Walk summary shows walk-to-walk trend (better/worse/same vs last walk)
+- [x] **SUM-01**: Walk summary groups entries by company showing which trades are on track vs behind
+- [x] **SUM-02**: Walk summary shows delayed task details (task name, zone, variance code, delay days, severity)
+- [x] **SUM-03**: Walk summary shows "Next up" — trades scheduled for the next 2-3 days with dates
+- [x] **SUM-04**: Walk summary shows walk-to-walk trend (better/worse/same vs last walk)
 
 ### Walk History
 
@@ -68,10 +68,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PHOTO-04 | Phase 5 | Pending |
 | OBS-01 | Phase 5 | Complete |
 | OBS-02 | Phase 5 | Complete |
-| SUM-01 | Phase 6 | Pending |
-| SUM-02 | Phase 6 | Pending |
-| SUM-03 | Phase 6 | Pending |
-| SUM-04 | Phase 6 | Pending |
+| SUM-01 | Phase 6 | Complete |
+| SUM-02 | Phase 6 | Complete |
+| SUM-03 | Phase 6 | Complete |
+| SUM-04 | Phase 6 | Complete |
 | HIST-01 | Phase 7 | Pending |
 | FIX-01 | Phase 7 | Pending |
 | FIX-02 | Phase 7 | Pending |

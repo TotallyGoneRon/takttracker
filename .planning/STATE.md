@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Site Walk Overhaul
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-29T20:01:12.464Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-29T20:24:17.131Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 5
+  completed_plans: 4
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Give a construction PM an accurate, at-a-glance picture of schedule health so they can act before problems cascade.
-**Current focus:** Phase 05 — photo-capture-richer-observations
+**Current focus:** Phase 06 — walk-summary-report
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
+Phase: 06 (walk-summary-report) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-03-29
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 05 P01 | 3min | 3 tasks | 5 files |
 | Phase 05 P02 | 4min | 2 tasks | 9 files |
+| Phase 06 P01 | 1min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Photo URLs stored as filenames only -- API route constructs full path at serve time
 - [Phase 05]: ErrorBanner duplicated per-component for self-containment during extraction
 - [Phase 05]: page.tsx 382 lines (state+handlers) -- JSX extraction achieved 60% reduction from 961
+- [Phase 06]: Next-up tasks use 3 calendar day lookahead with 50-result cap
+- [Phase 06]: On-track rate includes both on_track and completed statuses
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T15:31:33.753Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-03-29T20:24:17.129Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
