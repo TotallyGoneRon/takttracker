@@ -27,15 +27,17 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 - ✓ Reusable SWR data fetching hooks with skeleton loading — Phase 1
 - ✓ Database backup and migration infrastructure — Phase 1
 - ✓ Missing schema tables and columns fixed (delayWeights, importChangelog) — Phase 1
+- ✓ Dashboard with Health Index hero metric, PPC, SPI, top/bottom trades — Phase 3
+- ✓ Mobile bottom navigation bar for field use — Phase 3
+- ✓ Collapsible building/floor timeline groups for 200+ task handling — Phase 3
+- ✓ Responsive design across all 8 pages (desktop + mobile) — Phase 3
 
 ### Active
 
 - [ ] Full front-end and feature audit (UX, bugs, code quality, feature gaps)
 - [ ] Scorecard overhaul — task-level detail, trend over time, trade breakdown
-- [ ] UI/UX overhaul — dashboard-rich on desktop, clean/task-focused on mobile
 - [ ] Fix security issues (no auth, SSRF in sync, no input validation)
 - [ ] Fix performance bottlenecks (N+1 queries, full table scans, no pagination)
-- [ ] Responsive design across all pages
 
 ### Out of Scope
 
@@ -87,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after Phase 1 completion*
+*Last updated: 2026-03-28 after Phase 3 completion*
