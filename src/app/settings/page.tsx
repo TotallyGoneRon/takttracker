@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { apiMutate } from '@/lib/fetcher';
 
 interface DelayWeight {
   id: number;
@@ -26,30 +28,21 @@ const REASON_LABELS: Record<string, string> = {
 export default function SettingsPage() {
   const [weights, setWeights] = useState<DelayWeight[]>([]);
   const [cascadingMultiplier, setCascadingMultiplier] = useState(1.5);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [projectId, setProjectId] = useState<number>(1);
 
-  useEffect(() => {
-    fetchWeights();
-  }, [projectId]);
-
-  async function fetchWeights() {
-    setLoading(true);
-    try {
-      const res = await fetch(`/tracking/api/settings/delay-weights?projectId=${projectId}`);
-      const data = await res.json();
-      setWeights(data);
-      if (data.length > 0) {
-        setCascadingMultiplier(data[0].cascading_multiplier ?? 1.5);
-      }
-    } catch {
-      console.error('Failed to fetch delay weights');
-    } finally {
-      setLoading(false);
+  const { isLoading: loading } = useSWR<DelayWeight[]>(
+    `/api/settings/delay-weights?projectId=${projectId}`,
+    {
+      onSuccess: (data) => {
+        setWeights(data);
+        if (data.length > 0) {
+          setCascadingMultiplier(data[0].cascading_multiplier ?? 1.5);
+        }
+      },
     }
-  }
+  );
 
   function updateWeight(reason: string, field: 'weight' | 'impacts_score', value: number | boolean) {
     setWeights((prev) =>
@@ -61,9 +54,8 @@ export default function SettingsPage() {
   async function handleSave() {
     setSaving(true);
     try {
-      const res = await fetch('/tracking/api/settings/delay-weights', {
+      await apiMutate('/api/settings/delay-weights', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
           cascadingMultiplier,
@@ -74,10 +66,8 @@ export default function SettingsPage() {
           })),
         }),
       });
-      if (res.ok) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch {
       console.error('Failed to save weights');
     } finally {

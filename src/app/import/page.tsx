@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiMutate } from '@/lib/fetcher';
 
 export default function ImportPage() {
   const router = useRouter();
@@ -40,13 +41,10 @@ export default function ImportPage() {
       formData.append('file', file);
       formData.append('projectName', projectName);
 
-      const res = await fetch('/tracking/api/import', {
+      const data = await apiMutate('/api/import', {
         method: 'POST',
         body: formData,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Import failed');
 
       setResult(data);
     } catch (err) {

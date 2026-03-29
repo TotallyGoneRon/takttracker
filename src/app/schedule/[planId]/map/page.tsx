@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 
 interface Task {
   id: number;
@@ -78,34 +79,26 @@ function groupToZones(tasks: Task[]): ZoneData[] {
 export default function MapPage() {
   const params = useParams();
   const planId = params.planId as string;
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedZone, setSelectedZone] = useState<ZoneData | null>(null);
   const [selectedBuildingTab, setSelectedBuildingTab] = useState<number | null>(null);
   const [scheduleView, setScheduleView] = useState<'interior' | 'exterior'>('interior');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch all tasks (limit=0 = no limit) for full map view
-        const res = await fetch(`/tracking/api/plans/${planId}?limit=0`);
-        if (!res.ok) throw new Error('Failed to load');
-        const data = await res.json();
-        setTasks(data.tasks);
-        setBuildings(data.buildings);
-        if (data.buildings.length > 0) {
-          setSelectedBuildingTab(data.buildings[0].id);
+  const { data: planData, error: swrError, isLoading: loading } = useSWR<{
+    tasks: Task[];
+    buildings: Building[];
+  }>(
+    planId ? `/api/plans/${planId}?limit=0` : null,
+    {
+      onSuccess: (d) => {
+        if (d.buildings.length > 0 && selectedBuildingTab === null) {
+          setSelectedBuildingTab(d.buildings[0].id);
         }
-      } catch (err) {
-        setError('Failed to load map data. Please check your connection and refresh.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [planId]);
+      },
+    }
+  );
+  const tasks = planData?.tasks ?? [];
+  const buildings = planData?.buildings ?? [];
+  const error = swrError ? 'Failed to load map data. Please check your connection and refresh.' : null;
 
   if (loading) {
     return (

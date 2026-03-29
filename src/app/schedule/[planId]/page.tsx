@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import useSWR from 'swr';
 
 interface Task {
   id: number;
@@ -107,8 +108,6 @@ function TaskSkeleton() {
 export default function SchedulePage() {
   const params = useParams();
   const planId = params.planId as string;
-  const [data, setData] = useState<PlanData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [buildingFilter, setBuildingFilter] = useState('all');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>(getCurrentWeek);
@@ -146,33 +145,22 @@ export default function SchedulePage() {
     setDateRange(getCurrentWeek());
   }, []);
 
-  const [error, setError] = useState<string | null>(null);
+  const swrParams = useMemo(() => {
+    const p = new URLSearchParams();
+    if (!showAllDates) {
+      p.set('start', dateRange.start);
+      p.set('end', dateRange.end);
+    }
+    if (statusFilter !== 'all') p.set('status', statusFilter);
+    if (buildingFilter !== 'all') p.set('building', buildingFilter);
+    return p.toString();
+  }, [dateRange, statusFilter, buildingFilter, showAllDates]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams();
-        if (!showAllDates) {
-          params.set('start', dateRange.start);
-          params.set('end', dateRange.end);
-        }
-        if (statusFilter !== 'all') params.set('status', statusFilter);
-        if (buildingFilter !== 'all') params.set('building', buildingFilter);
-
-        const res = await fetch(`/tracking/api/plans/${planId}?${params}`);
-        if (!res.ok) throw new Error('Failed to load');
-        const json = await res.json();
-        setData(json);
-      } catch (err) {
-        setError('Failed to load schedule data. Please check your connection and refresh.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [planId, dateRange, statusFilter, buildingFilter, showAllDates]);
+  const { data, error: swrError, isLoading, isValidating } = useSWR<PlanData>(
+    planId ? `/api/plans/${planId}?${swrParams}` : null
+  );
+  const loading = isLoading || isValidating;
+  const error = swrError ? 'Failed to load schedule data. Please check your connection and refresh.' : null;
 
   // Reset expanded state when building filter changes
   useEffect(() => {
