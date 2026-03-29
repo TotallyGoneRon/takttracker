@@ -54,21 +54,21 @@ export function EntryCard({ entry, isExpanded, onToggleExpand, children }: Entry
         </div>
 
         {/* Chevron */}
-        <ChevronDown
-          className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
-            isExpanded ? 'rotate-180' : ''
-          }`}
-        />
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 flex-shrink-0">
+          <ChevronDown
+            className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${
+              isExpanded ? 'rotate-180' : ''
+            }`}
+          />
+        </div>
       </button>
 
-      {/* Expanded content */}
-      <div
-        className={`overflow-hidden transition-all duration-200 ease-out ${
-          isExpanded ? 'max-h-[800px]' : 'max-h-0'
-        }`}
-      >
-        {children}
-      </div>
+      {/* Expanded content — conditional render instead of CSS hide */}
+      {isExpanded && (
+        <div className="border-t border-gray-200">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
