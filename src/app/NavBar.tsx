@@ -156,27 +156,17 @@ export function NavBar() {
           >
             Settings
           </Link>
-          {/* Plan links only shown in hamburger when NOT in plan context -- bottom bar handles these on mobile */}
-          {planLinks.length > 0 && !inPlanContext && (
-            <>
-              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-2">
-                Plan #{planId}
-              </div>
-              {planLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={`px-3 py-3 rounded-lg text-sm transition ${
-                    isActive(link.href)
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </>
+          {/* Map link shown in hamburger when in plan context — Map is not in bottom bar (per D-10) */}
+          {inPlanContext && planId && (
+            <Link
+              href={`/schedule/${planId}/map`}
+              onClick={() => setMenuOpen(false)}
+              className={`px-3 py-3 rounded-lg text-sm transition min-h-[48px] flex items-center ${
+                pathname.includes('/map') ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Map
+            </Link>
           )}
         </nav>
       )}
