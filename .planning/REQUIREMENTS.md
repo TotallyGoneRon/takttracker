@@ -28,7 +28,7 @@ Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
 
 ### Walk History
 
-- [ ] **HIST-01**: User can view a list of past walks with summary stats (date, entry counts, status breakdown)
+- [x] **HIST-01**: User can view a list of past walks with summary stats (date, entry counts, status breakdown)
 
 ### Bug Fixes
 
@@ -72,7 +72,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUM-02 | Phase 6 | Complete |
 | SUM-03 | Phase 6 | Complete |
 | SUM-04 | Phase 6 | Complete |
-| HIST-01 | Phase 7 | Pending |
+| HIST-01 | Phase 7 | Complete |
 | FIX-01 | Phase 7 | Pending |
 | FIX-02 | Phase 7 | Pending |
 | FIX-03 | Phase 7 | Pending |

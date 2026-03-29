@@ -73,7 +73,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [ ] 07-01-PLAN.md — Bug fixes: companies plan ID, scorecard dead link, statusColors cleanup
-- [ ] 07-02-PLAN.md — Walk history page with card-based list and WalkSummary link
+- [x] 07-02-PLAN.md — Walk history page with card-based list and WalkSummary link
 **UI hint**: yes
 
 ## Progress
