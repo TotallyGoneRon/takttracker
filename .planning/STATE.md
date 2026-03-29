@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: TBD
-status: milestone_complete
-stopped_at: v1.0 MVP shipped
-last_updated: "2026-03-29T03:18:07.824Z"
-last_activity: 2026-03-29
+milestone: v1.1
+milestone_name: Site Walk Overhaul
+status: planning
+stopped_at: Phase 5 context gathered
+last_updated: "2026-03-29T04:58:33.840Z"
+last_activity: 2026-03-28 — Roadmap created for v1.1
 progress:
-  total_phases: 5
-  completed_phases: 3
-  total_plans: 13
-  completed_plans: 12
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,49 +18,43 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-29)
+See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Give a construction PM an accurate, at-a-glance picture of schedule health so they can act before problems cascade.
-**Current focus:** Planning next milestone (v2.0)
+**Current focus:** v1.1 Site Walk Overhaul — Phase 5 ready to plan
 
 ## Current Position
 
-Phase: 999.1
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-03-29
+Phase: 5 of 7 (Photo Capture & Richer Observations)
+Plan: —
+Status: Ready to plan
+Last activity: 2026-03-28 — Roadmap created for v1.1
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
-**Velocity:**
+**Velocity (from v1.0):**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 13
+- Average duration: ~3 min
+- Total execution time: ~39 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| Phase 01 | 3 | 10min | 3.3min |
+| Phase 02 | 2 | — | — |
+| Phase 03 | 4 | 8min | 2.7min |
+| Phase 04 | 4 | 12min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 3min, 2min, 4min, 6min, 2min
+- Trend: Stable
 
 *Updated after each plan completion*
-| Phase 01 P01 | 1min | 2 tasks | 4 files |
-| Phase 01 P02 | 3min | 2 tasks | 19 files |
-| Phase 01 P03 | 6min | 2 tasks | 10 files |
-| Phase 03 P01 | 2min | 2 tasks | 2 files |
-| Phase 03 P02 | 3min | 2 tasks | 4 files |
-| Phase 03 P03 | 3min | 2 tasks | 7 files |
-| Phase 04 P03 | 2min | 2 tasks | 3 files |
-| Phase 04 P02 | 4min | 2 tasks | 11 files |
-| Phase 04 P04 | 6min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -69,21 +63,11 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: Foundation phase before any features — shared components and migration safety are prerequisites
-- [Roadmap]: Scorecard before responsive overhaul — highest workflow value, lower risk than touching all pages
-- [Roadmap]: Code quality last — safest when architecture is stable; lower urgency than user-visible features
-- [Phase 01]: sqlite3 .backup preferred for WAL-safe snapshots with cp fallback
-- [Phase 01]: Status colors unified as Tailwind tokens in tailwind.config.ts -- all pages use getStatusConfig() from shared module
-- [Phase 01]: SWR fetcher auto-prepends /tracking basePath; SWR keys use clean API paths
-- [Phase 01]: Import page excluded from SWR migration -- no data-loading fetch to migrate
-- [Phase 03]: Health Index uses three-factor formula: PPC (40%), SPI (35%), compression (25%)
-- [Phase 03]: Mobile dashboard shows only Health Index score + quick actions; desktop shows full metrics
-- [Phase 03]: BottomNav returns null outside plan context for clean DOM; plan links removed from mobile hamburger when bottom bar active
-- [Phase 03]: Collapsible groups use conditional rendering (not CSS hide) for DOM minimization
-- [Phase 04]: N+1 routes use batch inArray+Map pattern for related data, LEFT JOIN+GROUP BY for aggregation
-- [Phase 04]: FormData import route excluded from Zod body validation -- browser handles multipart
-- [Phase 04]: Site-walk keeps useEffect+apiMutate for initial load instead of SWR -- step-based workflow doesn't benefit from revalidation
-- [Phase 04]: Companies page uses dependent SWR chains with null keys for conditional fetching
+- [Research]: Zero new npm packages — all v1.1 features use existing deps (sharp, HTML capture, shadcn/ui)
+- [Research]: Photos stored in data/photos/ with API route to serve — never public/ (standalone build breaks runtime writes to public/)
+- [Research]: Photo upload decoupled from entry save — entry saves fast via JSON, photo uploads async after entryId returned
+- [Research]: 961-line site-walk page must be componentized before adding photo/observation state
+- [Research]: Severity and percent complete are visual trackers only — do not affect scoring or scheduling
 
 ### Pending Todos
 
@@ -91,12 +75,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Research]: SWR vs custom hooks decision deferred to Phase 1 planning
-- [Research]: PPC calculation edge cases need definition from Ron before Phase 2
-- [Research]: Snapshot frequency (per-walk vs weekly) needs confirmation before Phase 2
+- [Research]: Client-side image resize may be needed if cell upload speed is unacceptable — measure after Phase 5 deploy
+- [Research]: Walk summary aggregation query needs deliberate design step before Phase 6 implementation
 
 ## Session Continuity
 
-Last session: 2026-03-29T02:06:04.734Z
-Stopped at: Completed 04-04-PLAN.md
-Resume file: None
+Last session: 2026-03-29T04:58:33.838Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-photo-capture-richer-observations/05-CONTEXT.md
