@@ -80,12 +80,7 @@ export interface SuccessorTask {
 
 export type Step = 'select-zone' | 'zone-tasks' | 'toggle-status' | 'log-details' | 'completion-date' | 'impact-review' | 'summary';
 
-export const STATUS_COLORS: Record<string, { bg: string; hover: string; text: string; label: string }> = {
-  completed: { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', text: 'text-white', label: 'Completed' },
-  on_track: { bg: 'bg-green-500', hover: 'hover:bg-green-600', text: 'text-white', label: 'On Track' },
-  delayed: { bg: 'bg-red-500', hover: 'hover:bg-red-600', text: 'text-white', label: 'Delayed' },
-  recovered: { bg: 'bg-blue-500', hover: 'hover:bg-blue-600', text: 'text-white', label: 'Recovered' },
-};
+export { WALK_BUTTON_COLORS as STATUS_COLORS, ZONE_STATUS_COLORS } from '@/lib/statusColors';
 
 export const VARIANCE_CODES = [
   { code: 'labor', label: 'Labor', color: 'bg-orange-100 text-orange-700 border-orange-200' },
@@ -98,12 +93,3 @@ export const VARIANCE_CODES = [
   { code: 'other', label: 'Other', color: 'bg-gray-100 text-gray-700 border-gray-200' },
 ];
 
-export const ZONE_STATUS_COLORS: Record<string, string> = {
-  completed: 'bg-green-400 border-green-500',
-  delayed: 'bg-red-400 border-red-500',
-  on_track: 'bg-green-300 border-green-400',
-  recovered: 'bg-blue-400 border-blue-500',
-  not_started: 'bg-gray-200 border-gray-300',
-  in_progress: 'bg-indigo-300 border-indigo-400',
-  at_risk: 'bg-yellow-300 border-yellow-400',
-};

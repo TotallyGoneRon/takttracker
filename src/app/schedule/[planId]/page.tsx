@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
+import { STATUS_COLORS } from '@/lib/statusColors';
 
 interface Task {
   id: number;
@@ -45,22 +46,6 @@ interface PlanData {
   companies: { id: number; name: string; color: string | null }[];
   stats: Record<string, number>;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  not_started: 'bg-gray-200 text-gray-700',
-  in_progress: 'bg-indigo-100 text-indigo-700',
-  completed: 'bg-green-100 text-green-700',
-  delayed: 'bg-red-100 text-red-700',
-  blocked: 'bg-red-200 text-red-800',
-};
-
-const STATUS_DOT_COLORS: Record<string, string> = {
-  not_started: 'bg-gray-400',
-  in_progress: 'bg-indigo-500',
-  completed: 'bg-green-500',
-  delayed: 'bg-red-500',
-  blocked: 'bg-red-700',
-};
 
 
 function getCurrentWeek() {
@@ -384,7 +369,7 @@ export default function SchedulePage() {
                           <div className="divide-y divide-gray-50">
                             {zoneTasks.map((task) => (
                               <div key={task.id} className="pl-14 pr-4 py-2 flex items-center gap-3 hover:bg-gray-50">
-                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT_COLORS[task.status] || 'bg-gray-400'}`} />
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_COLORS[task.status as keyof typeof STATUS_COLORS]?.dot || 'bg-gray-400'}`} />
                                 <div
                                   className="w-3 h-8 rounded-sm flex-shrink-0"
                                   style={{ backgroundColor: task.activityColor || '#9ca3af' }}
@@ -396,7 +381,7 @@ export default function SchedulePage() {
                                     {task.company?.name || 'Unassigned'} · {task.planned_start} → {task.planned_end}
                                   </div>
                                 </div>
-                                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[task.status] || ''}`}>
+                                <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLORS[task.status as keyof typeof STATUS_COLORS]?.light || ''} ${STATUS_COLORS[task.status as keyof typeof STATUS_COLORS]?.text || ''}`}>
                                   {task.status.replace('_', ' ')}
                                 </span>
                                 {task.recovery_points > 0 && (
