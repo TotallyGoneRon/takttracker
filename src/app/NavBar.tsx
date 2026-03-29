@@ -15,6 +15,9 @@ export function NavBar() {
   const planMatch = pathname.match(/^\/schedule\/(\d+)/);
   const planId = planMatch ? planMatch[1] : null;
 
+  // Whether we're inside a plan context (bottom nav handles plan links on mobile)
+  const inPlanContext = !!planId;
+
   // Derive current plan name from path segment (will be shown generically)
   const planLinks = planId
     ? [
@@ -33,12 +36,12 @@ export function NavBar() {
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3">
             <h1 className="text-lg font-semibold text-gray-900">Takt-Flow</h1>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+            <span className={`text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full ${inPlanContext ? 'hidden sm:inline' : ''}`}>
               Recovery System
             </span>
           </Link>
           {planId && (
-            <span className="hidden sm:inline text-sm text-gray-500 border-l border-gray-200 pl-3 ml-1">
+            <span className="text-sm text-gray-500 border-l border-gray-200 pl-3 ml-1">
               Plan #{planId}
             </span>
           )}
@@ -153,7 +156,8 @@ export function NavBar() {
           >
             Settings
           </Link>
-          {planLinks.length > 0 && (
+          {/* Plan links only shown in hamburger when NOT in plan context -- bottom bar handles these on mobile */}
+          {planLinks.length > 0 && !inPlanContext && (
             <>
               <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 pt-2">
                 Plan #{planId}

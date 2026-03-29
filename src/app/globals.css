@@ -103,3 +103,8 @@ a[class*="rounded"]:active {
     page-break-inside: avoid;
   }
 }
+
+/* Bottom nav safe area for iOS */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
