@@ -151,7 +151,11 @@ export default function SiteWalkPage() {
 
   const handleZoneClick = (zone: ZoneInfo) => {
     setSelectedZone(zone);
-    if (zone.tasks.length === 1) {
+    const hasRecordedEntries = zone.tasks.some((t) => entries.some((e) => e.task.id === t.id));
+    if (hasRecordedEntries) {
+      // Always show task list if any entries exist — lets user access photos/severity/details
+      setStep('zone-tasks');
+    } else if (zone.tasks.length === 1) {
       setSelectedTask(zone.tasks[0]);
       setStep('toggle-status');
     } else {
@@ -186,10 +190,10 @@ export default function SiteWalkPage() {
   };
 
   const navigateAfterEntry = () => {
-    if (selectedZone && selectedZone.tasks.length > 1) {
+    if (selectedZone) {
+      // Always go to zone-tasks after recording — shows entry card with photo/details
       setStep('zone-tasks');
     } else {
-      setSelectedZone(null);
       setStep('select-zone');
     }
   };
