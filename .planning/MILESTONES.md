@@ -1,5 +1,21 @@
 # Milestones
 
+## v1.1 Site Walk Overhaul (Shipped: 2026-03-30)
+
+**Phases completed:** 3 phases, 7 plans, 14 tasks
+
+**Key accomplishments:**
+
+- Photo upload/serve/delete API with sharp resize pipeline, plus severity and percent_complete observation fields on site walk entries
+- 961-line site-walk monolith decomposed into 7 wizard step components with typed props, creating extension points for photo capture in Plan 03
+- Camera capture, severity picker, percent complete, and expandable entry cards wired into extracted site-walk wizard with full mobile verification
+- Extended EntryRecord with variance/delay fields, fixed saveEntry state persistence, and built summary API returning previous-walk trend and next-up tasks
+- Full field-report WalkSummary with company grouping, delayed task detail, next-up trades, and walk-to-walk trend indicator
+- Companies page uses latest plan dynamically, scorecard downstream link works, all color constants consolidated into statusColors.ts
+- Walk history page
+
+---
+
 ## v1.0 MVP (Shipped: 2026-03-29)
 
 **Phases completed:** 5 phases, 13 plans, 21 tasks

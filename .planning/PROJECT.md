@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A standalone takt schedule tracking app for construction project managers. It imports inTakt XLSX exports, tracks task progress across zones/floors/buildings, records site walk observations, scores trade performance via a recovery system, and flags cascading delays. Features a dashboard with Schedule Health Index, responsive mobile-first layout with bottom navigation for field use, and Zod-validated API routes. Deployed at jobsitenexus.com/tracking and used daily by Ron for the HV Brooklyn project.
+A standalone takt schedule tracking app for construction project managers. It imports inTakt XLSX exports, tracks task progress across zones/floors/buildings, records site walk observations with photos and severity/percent-complete tagging, scores trade performance via a recovery system, and flags cascading delays. Features a dashboard with Schedule Health Index, field-report-style walk summaries with company grouping and trend tracking, walk history, responsive mobile-first layout with bottom navigation for field use, and Zod-validated API routes. Deployed at jobsitenexus.com/tracking and used daily by Ron for the HV Brooklyn project.
 
 ## Core Value
 
@@ -38,12 +38,17 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 - ✓ Scorecard service layer with filtered queries and PPC metrics — v1.0
 - ✓ Scorecard UI with stat cards, trend charts, and trade drill-down — v1.0
 
+- ✓ Photo capture during site walks — snap photos per entry, stored locally with thumbnails — v1.1
+- ✓ Richer site walk observations — severity, percent complete, notes on any entry — v1.1
+- ✓ Walk summary field report — company grouping, delayed details, next-up trades, trend arrows — v1.1
+- ✓ Walk history page — past walks with date, entry counts, status breakdown — v1.1
+- ✓ Companies page dynamic plan selection — no longer hardcoded to plan 1 — v1.1
+- ✓ Scorecard downstream impact link — working navigation to timeline — v1.1
+- ✓ statusColors.ts consolidation — all pages use shared module — v1.1
+
 ### Active
 
-- [ ] Site walk UX overhaul — improve recording workflow and fix data integrity issues
-- [ ] Companies page hardcoded plan ID 1 — shows wrong data for multi-plan projects
-- [ ] Scorecard "View downstream impact" stub — dead link in drill-down panel
-- [ ] statusColors.ts orphaned — Phase 3 rewrite reintroduced local color constants
+(None — next milestone requirements TBD)
 
 ### Out of Scope
 
@@ -55,9 +60,11 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 
 ## Context
 
-- Shipped v1.0 with ~50 source files across 8 pages and 15 API routes
-- Stack: Next.js 14 App Router, Drizzle ORM, SQLite (WAL mode), Tailwind CSS, Zod, SWR
-- 17 database tables, scorecard-service.ts extracted as business logic module
+- Shipped v1.1 with ~60 source files across 9 pages (+ walk-history) and 17 API routes
+- Stack: Next.js 14 App Router, Drizzle ORM, SQLite (WAL mode), Tailwind CSS, Zod, SWR, sharp
+- 17 database tables, scorecard-service.ts and summary API as business logic modules
+- Site-walk page refactored from 961-line monolith to orchestrator + 15 extracted components
+- Photo storage at data/photos/ with sharp thumbnail generation
 - Part of larger Jobsite Nexus platform but managed independently
 - Server: 191.101.14.158, deployed via PM2 standalone build
 
@@ -79,11 +86,14 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 | Zod over manual validation | Consistent error format, type-safe schemas, composable | ✓ Good — zero raw parseInt remaining |
 | SWR over custom hooks | Caching, dedup, revalidation for free | ✓ Good — all pages migrated |
 | Health Index 3-factor formula | PPC (40%), SPI (35%), compression (25%) — balanced view | ✓ Good — single number captures schedule health |
+| One photo per entry | Simple UX, no gallery complexity, replace-on-retake | ✓ Good — v1.1 |
+| Conditional render over CSS hide | max-h-0 wasn't working reliably on mobile | ✓ Good — v1.1 |
+| Component extraction before features | 961-line monolith needed decomposition before photo/observation work | ✓ Good — v1.1 |
+| Summary API as single endpoint | One fetch for trend + next-up instead of multiple calls | ✓ Good — v1.1 |
 
-## Known Gaps (from v1.0 audit)
+## Known Gaps
 
 - Phase 2 scorecard work was executed but not formally tracked (no 02-02-SUMMARY.md or VERIFICATION.md)
-- statusColors.ts shared module is orphaned — pages use local color constants
 - Tailwind status.* tokens defined but unused
 - Timeline page uses inline TaskSkeleton instead of shadcn Skeleton
 
@@ -105,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-29 after v1.0 milestone*
+*Last updated: 2026-03-30 after v1.1 milestone completion*
