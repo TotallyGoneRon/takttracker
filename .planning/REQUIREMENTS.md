@@ -1,60 +1,56 @@
 # Requirements: Takt Flow Tracking App
 
-**Defined:** 2026-03-28
+**Defined:** 2026-03-30
 **Core Value:** Give a construction PM an accurate, at-a-glance picture of schedule health — which trades are on track, which are falling behind, and what the downstream impact looks like — so they can act before problems cascade.
 
-## v1.1 Requirements
+## v1.2 Requirements
 
-Requirements for the Site Walk Overhaul milestone. Each maps to roadmap phases.
+Requirements for the Scoring & Delay Overhaul milestone. Each maps to roadmap phases.
 
-### Photo Capture
+### Delay Justification
 
-- [x] **PHOTO-01**: User can tap a camera icon during entry recording to snap a photo from phone's rear camera
-- [x] **PHOTO-02**: Uploaded photos are automatically resized to thumbnails for fast display
-- [x] **PHOTO-03**: Photos are stored on local disk and tied to the specific site walk entry
-- [x] **PHOTO-04**: User can see a photo count badge on entries that have photos attached
+- [ ] **DELAY-01**: When marking a task complete, user can indicate if it was late and record delay days and reason — delays are justified at completion, not during walk recording
+- [ ] **DELAY-02**: Walk recording status options are On Track, Delayed, and Completed only — "Recovered" is removed (recovery calculated automatically on completion)
+- [ ] **DELAY-03**: Existing delay recording during walks (variance code, delay days) is removed — delays are only created through the completion flow
 
-### Observations
+### Prerequisite Matching
 
-- [x] **OBS-01**: User can mark a delayed entry with severity (Low/Medium/High/Critical) — visual tracker only, does not affect scoring
-- [x] **OBS-02**: User can record percent complete (0/25/50/75/100) on in-progress tasks — visual tracker only, does not affect scheduling
+- [ ] **PREREQ-01**: When a delay reason is "prerequisite" (another trade's fault), the system checks for existing assigned delays on predecessor trades in the same zone and links them
+- [ ] **PREREQ-02**: User can see which predecessor trade caused an inherited delay, with the original delay record linked
 
-### Walk Summary
+### Historical Delays
 
-- [x] **SUM-01**: Walk summary groups entries by company showing which trades are on track vs behind
-- [x] **SUM-02**: Walk summary shows delayed task details (task name, zone, variance code, delay days, severity)
-- [x] **SUM-03**: Walk summary shows "Next up" — trades scheduled for the next 2-3 days with dates
-- [x] **SUM-04**: Walk summary shows walk-to-walk trend (better/worse/same vs last walk)
+- [ ] **HIST-01**: User can bulk-mark tasks that were already delayed before tool adoption — a one-time setup or import-time flow for pre-existing delays
+- [ ] **HIST-02**: Historical delays are distinguished from tool-recorded delays in scoring (flagged as "pre-existing")
 
-### Walk History
+### Delay Management
 
-- [x] **HIST-01**: User can view a list of past walks with summary stats (date, entry counts, status breakdown)
+- [ ] **MGMT-01**: User can delete a delay record that was created by mistake
+- [ ] **MGMT-02**: User can edit delay days or reason on an existing delay record
+- [ ] **MGMT-03**: When a delay record is deleted or edited, inherited delays on successor tasks are automatically recalculated
+- [ ] **MGMT-04**: When a delay record changes, recovery scores on affected completed tasks are automatically recalculated
 
-### Bug Fixes
+### Score Recalculation
 
-- [x] **FIX-01**: Companies page uses active plan ID instead of hardcoded plan ID 1
-- [x] **FIX-02**: Scorecard "View downstream impact" links to a working destination
-- [x] **FIX-03**: statusColors.ts shared module is adopted across all pages (remove local color constants)
+- [ ] **SCORE-01**: Recovery points are only calculated when a task is marked complete — no scoring for on_track or delayed walk entries
+- [ ] **SCORE-02**: Changing a task's completion date triggers recovery score recalculation for that task and any tasks that inherit delays from it
 
 ## Future Requirements
 
-### Deferred from v1.1
+### Deferred from v1.2
 
-- **PHOTO-05**: Photo markup/annotation — draw arrows, circles, text on photos to highlight issues
-- **VOICE-01**: Voice note recording attached to entries — schema field exists, needs MediaRecorder API
-- **REPORT-01**: Exportable field report as PDF — print-friendly HTML covers 90% of the use case
-- **NOTIFY-01**: Severity-driven notification priority — high-severity delays bubble to dashboard
+- **DELAY-04**: Delay justification with photo evidence — attach a photo showing the cause of delay
+- **DELAY-05**: Delay approval workflow — delays above a threshold require PM sign-off
+- **REPORT-01**: Exportable delay report as PDF — print-friendly delay history per trade
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Mandatory photo per entry | Breaks three-tap walk speed — photos must always be optional |
-| Offline photo storage with sync | PWA-grade complexity for a single-user app — upload immediately or retry |
-| AI-powered photo analysis | Zero practical value for schedule tracking |
-| Complex form builder for observations | Fixed optional fields (severity, percent) are fast; custom forms are slow |
-| Full gallery/media management | Separate product domain (CompanyCam) — store per entry, display inline, done |
-| Real-time sync/collaboration | Single user — server roundtrip on save is fine |
+| Real-time delay notifications | Single user — server roundtrip on save is fine |
+| AI-powered delay prediction | Predictive flags system already exists for cascading warnings |
+| Multi-project delay comparison | Single project focus for now |
+| Automated delay detection from schedule | Delays are PM observations, not schedule calculations |
 
 ## Traceability
 
@@ -62,26 +58,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PHOTO-01 | Phase 5 | Complete |
-| PHOTO-02 | Phase 5 | Complete |
-| PHOTO-03 | Phase 5 | Complete |
-| PHOTO-04 | Phase 5 | Complete |
-| OBS-01 | Phase 5 | Complete |
-| OBS-02 | Phase 5 | Complete |
-| SUM-01 | Phase 6 | Complete |
-| SUM-02 | Phase 6 | Complete |
-| SUM-03 | Phase 6 | Complete |
-| SUM-04 | Phase 6 | Complete |
-| HIST-01 | Phase 7 | Complete |
-| FIX-01 | Phase 7 | Complete |
-| FIX-02 | Phase 7 | Complete |
-| FIX-03 | Phase 7 | Complete |
+| DELAY-01 | Phase 8 | Pending |
+| DELAY-02 | Phase 8 | Pending |
+| DELAY-03 | Phase 8 | Pending |
+| SCORE-01 | Phase 8 | Pending |
+| PREREQ-01 | Phase 9 | Pending |
+| PREREQ-02 | Phase 9 | Pending |
+| HIST-01 | Phase 9 | Pending |
+| HIST-02 | Phase 9 | Pending |
+| MGMT-01 | Phase 10 | Pending |
+| MGMT-02 | Phase 10 | Pending |
+| MGMT-03 | Phase 10 | Pending |
+| MGMT-04 | Phase 10 | Pending |
+| SCORE-02 | Phase 10 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 14 total
-- Mapped to phases: 14
+- v1.2 requirements: 13 total
+- Mapped to phases: 13
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after roadmap creation*
+*Requirements defined: 2026-03-30*

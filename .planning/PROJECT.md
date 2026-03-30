@@ -48,7 +48,24 @@ Give a construction PM an accurate, at-a-glance picture of schedule health — w
 
 ### Active
 
-(None — next milestone requirements TBD)
+- [ ] Delay justification at task completion — record delays when completing, not during walks
+- [ ] Prerequisite delay matching — link delays to existing predecessor delays in same zone
+- [ ] Historical delay handling — account for delays from before tool adoption
+- [ ] Remove "Recovered" walk status — recovery calculated automatically on completion
+- [ ] Undo/adjust delay records — delete or edit delays, recalculate downstream
+- [ ] Score recalculation — recompute recovery and inherited delays when records change
+
+## Current Milestone: v1.2 Scoring & Delay Overhaul
+
+**Goal:** Restructure the delay and recovery scoring system around task completion, with prerequisite delay matching, historical delay handling, and the ability to adjust/undo delay records.
+
+**Target features:**
+- Delay justification at task completion (not during walk recording)
+- Prerequisite delay matching — link to existing delays in same zone
+- Historical/pre-existing delay handling for mid-project adoption
+- Remove "Recovered" status from walk recording (calculated on completion)
+- Undo/adjust delay records with downstream recalculation
+- Score recalculation when delay records change
 
 ### Out of Scope
 
@@ -115,4 +132,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after v1.1 milestone completion*
+*Last updated: 2026-03-30 after v1.2 milestone start*

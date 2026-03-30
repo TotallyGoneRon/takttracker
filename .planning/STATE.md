@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Site Walk Overhaul
-status: verifying
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-30T14:35:00.577Z"
+milestone: v1.2
+milestone_name: Scoring & Delay Overhaul
+status: ready to plan
+stopped_at: v1.2 roadmap created, ready to plan Phase 8
+last_updated: "2026-03-30"
 last_activity: 2026-03-30
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 10
+  completed_phases: 7
+  total_plans: 0
+  completed_plans: 0
   percent: 0
 ---
 
@@ -18,68 +18,37 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Give a construction PM an accurate, at-a-glance picture of schedule health so they can act before problems cascade.
-**Current focus:** Phase 07 — walk-history-bug-fixes
+**Current focus:** Phase 8 — Completion-Based Delay Recording
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Phase: 8 of 10 (Completion-Based Delay Recording)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-30 — v1.2 roadmap created
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [=======...] 70% (7/10 phases complete, v1.2 not started)
 
 ## Performance Metrics
 
-**Velocity (from v1.0):**
-
-- Total plans completed: 13
-- Average duration: ~3 min
-- Total execution time: ~39 min
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| Phase 01 | 3 | 10min | 3.3min |
-| Phase 02 | 2 | — | — |
-| Phase 03 | 4 | 8min | 2.7min |
-| Phase 04 | 4 | 12min | 4min |
+**Velocity (v1.0 + v1.1):**
+- Total plans completed: 16
+- v1.0: 13 plans, v1.1: 7 plans (3 phases)
 
 **Recent Trend:**
-
-- Last 5 plans: 3min, 2min, 4min, 6min, 2min
+- Last 5 plans: 1min, 1min, 4min, 3min, 2min
 - Trend: Stable
-
-*Updated after each plan completion*
-| Phase 05 P01 | 3min | 3 tasks | 5 files |
-| Phase 05 P02 | 4min | 2 tasks | 9 files |
-| Phase 06 P01 | 1min | 2 tasks | 3 files |
-| Phase 06 P02 | 1min | 2 tasks | 1 files |
-| Phase 07 P02 | 1min | 2 tasks | 2 files |
-| Phase 07 P01 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Research]: Zero new npm packages — all v1.1 features use existing deps (sharp, HTML capture, shadcn/ui)
-- [Research]: Photos stored in data/photos/ with API route to serve — never public/ (standalone build breaks runtime writes to public/)
-- [Research]: Photo upload decoupled from entry save — entry saves fast via JSON, photo uploads async after entryId returned
-- [Research]: 961-line site-walk page must be componentized before adding photo/observation state
-- [Research]: Severity and percent complete are visual trackers only — do not affect scoring or scheduling
-- [Phase 05]: Photo URLs stored as filenames only -- API route constructs full path at serve time
-- [Phase 05]: ErrorBanner duplicated per-component for self-containment during extraction
-- [Phase 05]: page.tsx 382 lines (state+handlers) -- JSX extraction achieved 60% reduction from 961
-- [Phase 06]: Next-up tasks use 3 calendar day lookahead with 50-result cap
-- [Phase 06]: On-track rate includes both on_track and completed statuses
-- [Phase 07]: Re-export WALK_BUTTON_COLORS as STATUS_COLORS in types.ts for backward compat with site-walk components
+- [v1.2]: Delays justified at task completion, not during walks
+- [v1.2]: "Recovered" walk status removed — recovery is calculated automatically
+- [v1.2]: Historical delays flagged as "pre-existing" to distinguish from tool-recorded
 
 ### Pending Todos
 
@@ -87,11 +56,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Research]: Client-side image resize may be needed if cell upload speed is unacceptable — measure after Phase 5 deploy
-- [Research]: Walk summary aggregation query needs deliberate design step before Phase 6 implementation
+None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-29T20:49:49.393Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-30
+Stopped at: v1.2 roadmap created, ready to plan Phase 8
 Resume file: None
